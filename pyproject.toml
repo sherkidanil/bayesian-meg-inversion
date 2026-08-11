@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "meg-cfm"
+version = "0.1.0"
+description = "Amortised Bayesian inversion of the MEG forward problem with conditional flow matching"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [{ name = "Daniil Sherki", email = "Daniil.Sherki@skoltech.ru" }]
+keywords = ["MEG", "inverse problem", "flow matching", "simulation-based inference"]
+
+dependencies = [
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "networkx>=3.0",
+    "jax>=0.4.30",
+    "equinox>=0.11",
+    "optax>=0.2",
+    "mne>=1.6",
+    "optuna>=3.6",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.5"]
+viz = ["matplotlib>=3.8", "nibabel>=5.2", "pyvista>=0.43"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

@@ -1,0 +1,36 @@
+cff-version: 1.2.0
+title: Bayesian MEG Inversion with Conditional Flow Matching
+message: If you use this software, please cite the accompanying preprint.
+type: software
+authors:
+  - given-names: Daniil
+    family-names: Sherki
+    affiliation: Skoltech, Sber
+    email: Daniil.Sherki@skoltech.ru
+  - given-names: Anna
+    family-names: Kubyak
+    affiliation: HSE University
+  - given-names: Alexei
+    family-names: Ossadtchi
+    affiliation: HSE University, AIRI
+  - given-names: Ivan
+    family-names: Oseledets
+    affiliation: Skoltech, AIRI
+  - given-names: Ekaterina
+    family-names: Muravleva
+    affiliation: Skoltech, Sber
+license: MIT
+references:
+  - type: article
+    title: "Bayesian Inverse Problems Meet Flow Matching: Efficient and Flexible Inference via Transformers"
+    authors:
+      - given-names: Daniil
+        family-names: Sherki
+      - given-names: Ivan
+        family-names: Oseledets
+      - given-names: Ekaterina
+        family-names: Muravleva
+    year: 2025
+    identifiers:
+      - type: other
+        value: arXiv:2503.01375

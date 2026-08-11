@@ -1,0 +1,49 @@
+# Data and model artefacts — never tracked
+*.npz
+*.npy
+*.eqx
+*.pt
+*.pth
+*.ckpt
+*.joblib
+*.db
+*.db-*
+*.sqlite*
+*.log
+*.pid
+
+# Secrets and local configuration
+.env
+.env.*
+*credentials*
+*secret*
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# Editors and OS
+.DS_Store
+.idea/
+.vscode/
+.ipynb_checkpoints/
+
+# Local worktrees and caches
+.worktrees/
+cache_memmap/
+
+# Typst build output
+paper/*.pdf
+
+# macOS AppleDouble artefacts
+._*
+.AppleDouble
+.Spotlight-V100
+.Trashes
