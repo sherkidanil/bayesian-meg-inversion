@@ -4,7 +4,9 @@ Amortised posterior inference for the MEG inverse problem: a conditional flow-ma
 
 Companion code to ongoing work at Skoltech / HSE / AIRI, following [Bayesian Inverse Problems Meet Flow Matching](https://arxiv.org/abs/2503.01375) (arXiv:2503.01375).
 
-> **Status: research in progress.** Numbers below are current best estimates under an explicitly documented evaluation protocol. Several comparisons are still blocked on cross-lab metric alignment — see [Open questions](#open-questions).
+> **Status: scientific closeout complete.** The frozen numerical source of
+> truth is [`reports/RESULTS.md`](reports/RESULTS.md). Comparison with RAP MUSIC
+> remains conditional on three cross-lab definition checks listed below.
 
 ---
 
@@ -32,29 +34,34 @@ Samples are then combined by Gibbs weighting, $w_s \propto \exp(-r_s^2 / 2\tau^2
 
 ## Results
 
-Evaluated on 315 paired simulations (original and shifted source configurations sharing identical time courses and noise).
+Evaluated on 315 paired simulations with the final Anna-lead-field model.
 
-**Decoder comparison**, fixed test set, geodesic MAE:
+**Decoder comparison**, `dG=0` original inputs:
 
-| Decoder | MAE (mm) | Uses ground truth |
-|---|---:|:-:|
-| Single posterior sample | 11.74 | no |
-| Naive posterior mean | 9.09 | no |
-| Permutation-aligned mean | 9.09 | no |
-| Posterior medoid | 9.31 | no |
-| **Residual-scored** | **5.41** | **no** |
-| Oracle best-of-100 | 3.00 | yes — upper bound only |
+| Decoder | MAE euc | MAE geo | Uses ground truth |
+|---|---:|---:|:-:|
+| Single posterior sample | 5.164 | 9.736 | no |
+| Naive posterior mean | 3.822 | 7.517 | no |
+| Posterior medoid | 4.129 | 8.237 | no |
+| **Residual argmin** | **2.031** | **3.630** | **no** |
+| Frozen smooth | 2.273 | 4.383 | no |
+| Oracle best-of-100 | 1.314 | 1.685 | yes — upper bound only |
 
-Residual scoring roughly halves the error of the naive estimator without retraining anything.
+Residual scoring roughly halves the error of the naive estimator without
+access to truth. The mean within-sample Spearman association between residual
+and true draw error is 0.518.
 
 **Localisation accuracy and shift stability**, at input shift $\Delta X \approx 4.57$ mm:
 
-| Scenario | MAE euc | MAE geo | $\Delta X'$ euc | $\Delta X'/\Delta X$ |
-|---|---:|---:|---:|---:|
-| Matched lead field | 2.53 | 4.55 | 6.37 | 1.40 |
-| Perturbed lead field | 2.73 | 4.72 | 6.53 | 1.43 |
+| Scenario | MAE euc | MAE geo | $\Delta X'$ euc |
+|---|---:|---:|---:|
+| Anna-G model, `dG=0` | 2.273 | 4.383 | **5.847** |
+| Anna-G model, `dG≠0` | 2.396 | 4.399 | **5.938** |
 
-A lead-field perturbation of the magnitude studied here (6.8% relative Frobenius norm) costs +0.20 mm accuracy and +0.16 mm stability.
+Across decoder and input branch, `dG` costs +0.017 to +0.433 mm in geodesic
+accuracy and +0.070 to +0.091 mm in paired stability. The full
+accuracy–stability frontier and model-by-domain matrix are in the canonical
+results report.
 
 ## What this repository also documents
 
@@ -72,7 +79,7 @@ src/meg_cfm/       reusable modules: metrics, simulator, decoders, provenance
 experiments/       reproducible scripts, one per audit or measurement
 tests/             unit tests, including leakage guards on truth-free estimators
 docs/              mathematical appendix and findings write-up
-reports/           dated result reports with provenance hashes
+reports/           canonical RESULTS.md plus dated provenance logs
 paper/             manuscript source (Typst, draft)
 ```
 
@@ -99,10 +106,15 @@ Every run writes `summary.json` with input SHA-256 hashes, git HEAD, and a flag 
 
 ## Open questions
 
-1. Cross-lab alignment of the geodesic metric — specifically the handling of infinite distances between disconnected hemispheres, which drives the gap between 2.53 mm Euclidean and 4.55 mm geodesic.
-2. A single shared lead-field file, so the two methods are compared under one forward model.
-3. Separating the decoder's own Monte Carlo jitter from genuine shift sensitivity in $\Delta X'$.
-4. Shifted configurations localise systematically better than original ones across every decoder tested. Source separation, sensor visibility, and the minimum-distance correction branch have each been ruled out.
+Only cross-lab definitions remain open:
+
+1. Did the reported RAP MUSIC accuracy values 4.05 and 4.78 mm use these same
+   315 pairs or an earlier 300-sample corpus?
+2. What graph and disconnected-component policy defines RAP `MAE Geo`?
+3. How were the three sources matched for RAP $\Delta X'$?
+
+The project does not open new estimators, retraining runs, sweeps, or post-hoc
+asymmetry hypotheses during closeout.
 
 ## Authors
 

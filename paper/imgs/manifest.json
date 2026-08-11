@@ -1,0 +1,30 @@
+{
+  "schema": "meg-closeout-figures-v1",
+  "sources": [
+    "reports/closeout/inputs/anna_g_tau_curve.json",
+    "reports/closeout/inputs/anna_g_tau_selection.json",
+    "reports/closeout/inputs/domain_matrix_argmin.json",
+    "reports/closeout/inputs/domain_matrix_smooth.json",
+    "reports/closeout/inputs/mc_jitter_dg0_predictions.npz",
+    "reports/closeout/inputs/mc_jitter_dg0_summary.json",
+    "reports/closeout/inputs/mc_jitter_dgnz_predictions.npz",
+    "reports/closeout/inputs/mc_jitter_dgnz_summary.json",
+    "reports/closeout/inputs/paired_smooth_dg0.npz",
+    "reports/closeout/inputs/paired_smooth_dgnz.npz",
+    "reports/closeout/inputs/residual_error_scatter_dg0.csv.gz"
+  ],
+  "outputs": {
+    "fig1_pipeline.pdf": "dbd4d90036362ee0b6b7588234775eecce2d716460ed6b107163c26df44b2f1f",
+    "fig1_pipeline.png": "6bbb7a8f64d6b94bf12bb7af3ac3832467d0d59f02c210d04a2fe1bc4d9b821d",
+    "fig2_decoders.pdf": "a9c48fc5532c0c16c9b887f0f35a3ccca50e21254d27d3073fffb73eeccc781f",
+    "fig2_decoders.png": "020504abe9e1d5b2693585efc55a234c823d7d024af9138922e05da054b340b6",
+    "fig3_accuracy_stability_frontier.pdf": "57d7cc25d53861f2ad63cfbc5a9b88d7ab1db1cf4a99ae7797b60bfe592eadcf",
+    "fig3_accuracy_stability_frontier.png": "11d83c28e4228384bee95fe628d5f8314bddda7276f10fb042299f4f4ab4a6dc",
+    "fig4_model_domain_matrix.pdf": "2b32f19e1971be36467c8f2abb7cdf945ccf943912aa460d85b2b73d498f03ef",
+    "fig4_model_domain_matrix.png": "44e3316c9b8638418112286bad32feb15c32a2c8f98914331682f6c4a761ce20",
+    "fig5_deltax_distributions.pdf": "ec7038c8543df306a0dfb429295c8b35b6cdb2a6d1c8cf61d832ec6728e0047a",
+    "fig5_deltax_distributions.png": "9de529115e9af783662604a3d4b987c252dafb68c278609011226599ec57fdce",
+    "fig6_residual_vs_error.pdf": "c301b2d3f13a6a17588f58530c21cf62d761340a1c7e6d12b1a26e3eadd76c93",
+    "fig6_residual_vs_error.png": "efb8f1286c3afe7d3a795622b68bc774e818293c1bd24b9e9fba92bddf8ff06b"
+  }
+}

@@ -2,6 +2,10 @@
 
 A record of four things this project got wrong, how each was detected, and what it cost. Written because the detection methods are reusable and the failure modes are not specific to MEG.
 
+The frozen numerical source of truth is [`reports/RESULTS.md`](../reports/RESULTS.md).
+This document explains the audit logic; it does not supersede the canonical
+tables there.
+
 ---
 
 ## 1. The evaluation protocol was an oracle
@@ -73,7 +77,7 @@ The decisive observation was that the posterior mean barely improves with more s
 | P90 of per-case maximum angle | 60.44° |
 | Deliberate `dG` perturbation, same metric | 0.068 |
 
-The unintentional mismatch is 5.4× larger than the perturbation whose effect the study was measuring. Most likely cause is MNE version drift between machines.
+The unintentional mismatch is 5.4× larger than the perturbation whose effect the study was measuring. Its exact cause cannot be attributed because the historical generation environment and training lead field were not persisted; current rebuilds record MNE, nibabel, and sample-data versions.
 
 **Attribution.** Which dataset belongs to which lead field is decided by the same residual, evaluated at *known* centroids — a diagnostic, not an estimator. Comparison is made within a dataset, since the absolute noise floor depends on the simulation's noise level:
 
@@ -102,9 +106,40 @@ Every dataset generated since persists $G$ alongside the data.
 
 ---
 
+## 5. Controlled retraining separated decoder error from domain error
+
+Once the decoder was fixed, retraining was repeated as a controlled experiment:
+the mesh, latent sources, simulator settings, seeds, hyperparameters, and split
+policy were held fixed, and only the persisted lead field changed. No sweep was
+run.
+
+| Training domain | Server-G test, Geo mm | Anna-G test, Geo mm |
+|---|---:|---:|
+| Server-G model | **4.306 ± 0.080** | 4.850 ± 0.202 |
+| Anna-G model | 4.946 ± 0.068 | **4.513 ± 0.327** |
+
+The hard-decoder domain cost is +0.544 mm in one direction and +0.433 mm in the
+other. With independently frozen smooth decoders, the full sensitivity range
+is +0.404 to +1.160 mm. Retraining therefore removes part of a physical domain
+mismatch; it does not retroactively prove that the original in-domain weights
+were undertrained.
+
+On the 315 collaboration pairs, the final Anna-G smooth decoder gives paired
+$\Delta X'=5.847$ mm at `dG=0` and 5.938 mm at `dG≠0`. These values are
+numerically close to the reported RAP MUSIC values 5.85 and 6.13 mm, but parity
+is not claimed until the exact RAP accuracy corpus, geodesic convention, and
+source matching are confirmed.
+
+**Lesson.** A controlled retraining result is a model-by-domain matrix, not one
+improved number. The diagonal measures in-domain quality; the off-diagonal
+measures mismatch in both directions.
+
+---
+
 ## Method notes carried forward
 
 - **Selection sets and reporting sets are disjoint.** The decoder temperature was frozen on an independent development split, with the selection rule fixed before the Pareto front was inspected, and its choice recorded by hash.
 - **Truth-free estimators are tested for leakage.** Unit tests fail if ground truth reaches an estimator's API.
 - **Paired comparisons use paired statistics.** An earlier apparent ranking change dissolved when per-seed differences were examined: the challenger won the aggregate by 0.100 mm while losing two of three seeds. A later reranking, decisive on all three seeds, was accepted.
 - **Provenance travels with results.** Each run records input hashes, git HEAD, and whether the repository changed mid-run.
+- **Stopping rules are part of rigor.** The accuracy--stability frontier is measured, five decoders are enough, three asymmetry hypotheses were rejected, and no further estimator, sweep, or post-hoc explanation is part of this closeout.
