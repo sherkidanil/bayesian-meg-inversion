@@ -126,9 +126,12 @@ were undertrained.
 
 On the 315 collaboration pairs, the final Anna-G smooth decoder gives paired
 $\Delta X'=5.847$ mm at `dG=0` and 5.938 mm at `dG≠0`. These values are
-numerically close to the reported RAP MUSIC values 5.85 and 6.13 mm, but parity
-is not claimed until the exact RAP accuracy corpus, geodesic convention, and
-source matching are confirmed.
+numerically aligned with the reported RAP MUSIC values 5.85 and 6.13 mm. Anna
+confirmed that the accuracy and stability results use the same collaboration
+simulations and that geodesic accuracy uses the real mesh graph. Exact
+disconnected-component and source-matching conventions remain an accepted
+implementation-level limitation; no superiority claim is made without
+per-sample RAP MUSIC outputs.
 
 **Lesson.** A controlled retraining result is a model-by-domain matrix, not one
 improved number. The diagonal measures in-domain quality; the off-diagonal

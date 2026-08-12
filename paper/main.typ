@@ -176,7 +176,7 @@ posterior-mean limits remain visible in @frontier.
 
 #figure(
   image("imgs/fig3_accuracy_stability_frontier.pdf", width: 82%),
-  caption: [Measured accuracy--stability frontier. The reported RAP MUSIC point is drawn but formally not comparable because its accuracy metric and sample set remain unresolved.],
+  caption: [Measured accuracy--stability frontier. The reported RAP MUSIC point is shown for numerical context; its accuracy coordinate is geodesic whereas the CFM frontier uses Euclidean accuracy.],
 ) <frontier>
 
 == Paired stability and $"dG"$
@@ -200,10 +200,13 @@ not remove the substantive response to the input shift.
 == Comparison boundary and limitations
 
 The CFM stability values are numerically close to the reported RAP MUSIC values
-5.85 and 6.13 mm. A parity claim is premature. The reported RAP accuracy values
-4.05 and 4.78 were described as “MAE Geo,” but the exact graph,
-disconnected-component policy, and whether they use these same 315 pairs are
-unknown. Source matching for RAP $Delta X'$ also remains unspecified.
+5.85 and 6.13 mm. Anna confirmed that the reported RAP accuracy and stability
+values use the same collaboration simulations and that “MAE Geo” is evaluated
+on the real mesh graph. This makes the results numerically comparable at the
+dataset and metric-family level. Exact disconnected-component and source-
+matching conventions were not collected and remain an implementation-level
+limitation. We therefore report numerical alignment, but not statistical
+superiority without per-sample RAP MUSIC outputs.
 
 Original inputs are systematically harder than shifted inputs under the fixed
 head-coordinate displacement. Source spacing, lead-field norm and normal angle,

@@ -125,15 +125,18 @@ choice.
 | method / scenario | samples | accuracy | paired `ΔX′` euc, mm | comparability in this table |
 |---|---:|---|---:|---|
 | CFM Anna-G, `dG=0` | 315 pairs | 2.2727 Euc / 4.3826 Geo | **5.8471** | complete Euc; Geo finite-only |
-| RAP MUSIC, reported `dG=0` | unresolved | **4.05 “MAE Geo”** | 5.85 | accuracy dataset/metric unresolved; stability pair set reported as matched |
+| RAP MUSIC, reported `dG=0` | 315 pairs | **4.05 “MAE Geo”** | 5.85 | same collaboration simulations; graph-based Geo |
 | CFM Anna-G, `dG≠0` | 315 pairs | 2.3959 Euc / 4.3991 Geo | **5.9380** | localization uses unperturbed persisted Anna G |
-| RAP MUSIC, reported `dG≠0` | unresolved | **4.78 “MAE Geo”** | 6.13 | accuracy dataset/metric unresolved; stability pair set reported as matched |
+| RAP MUSIC, reported `dG≠0` | 315 pairs | **4.78 “MAE Geo”** | 6.13 | same collaboration simulations; graph-based Geo |
 
-The numerical stability values are essentially aligned, but **parity or
-superiority is not claimed**. Anna still needs to confirm whether `4.05/4.78`
-were computed on these same 315 pairs or on an earlier 300-sample corpus, how
-disconnected mesh components enter `MAE Geo`, and how sources were matched for
-`ΔX′`. These are independent comparability conditions, not a footnote.
+Anna confirmed that `4.05/4.78` and `5.85/6.13` were computed on the same
+collaboration simulations and that the geodesic accuracy uses the real mesh
+graph. The results are therefore numerically comparable at the dataset and
+metric-family level. The stability values are essentially aligned; the
+accuracy values are also of the same order. Exact disconnected-component and
+source-matching conventions were not collected and are retained as an accepted
+implementation-level limitation rather than an open experimental task. We do
+not claim statistical superiority without per-sample RAP MUSIC outputs.
 
 ## 5. Accuracy–stability frontier
 
@@ -150,11 +153,10 @@ The development curve spans the measured limits `τ→0` (residual argmin) and
 
 ![Accuracy–stability frontier](../paper/imgs/fig3_accuracy_stability_frontier.png)
 
-The reported RAP point `(4.05, 5.85)` would be dominated by the measured CFM
-front if both coordinates referred to these same samples and Euclidean
-definitions. They do not currently satisfy that condition, so its official
-Pareto status is **not comparable**, not “dominated.” No new estimator is
-needed: the achievable CFM set is measured.
+The reported RAP point `(4.05, 5.85)` uses geodesic accuracy, whereas the CFM
+frontier uses Euclidean accuracy. It is therefore shown for numerical context,
+not assigned a formal Pareto status. No new estimator is needed: the achievable
+CFM set is measured.
 
 ## 6. Stability under `dG` and Monte Carlo sampling
 
@@ -203,15 +205,13 @@ replace the `n=315` primary estimates.
 - **Retraining, new decoders, and sweeps:** stopped. The controlled retraining
   and measured frontier answer the questions they were meant to answer.
 
-### Open only because external definitions are missing
+### Accepted comparison boundary
 
-1. Did Anna's `4.05` and `4.78 mm` use the same 315 paired samples, or an
-   earlier 300-sample corpus?
-2. What graph and disconnected-component policy defines her `MAE Geo`?
-3. How were three sources matched when her `ΔX′` was computed?
-
-Until those answers arrive, accuracy comparisons to RAP MUSIC remain
-unresolved. The paired CFM stability measurements themselves are complete.
+Anna confirmed that both methods' reported values use the same collaboration
+simulations and that RAP MUSIC's geodesic accuracy is evaluated on the real
+mesh graph. Exact disconnected-component and source-matching implementation
+details were not collected. They remain a documented limitation; no further
+external clarification or computation is required for closeout.
 
 ## Provenance index
 
