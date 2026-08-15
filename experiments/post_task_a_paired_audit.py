@@ -11,6 +11,7 @@ from typing import Any
 
 import numpy as np
 from scipy.sparse import csr_matrix
+from scipy.sparse.csgraph import connected_components
 from scipy.spatial import cKDTree
 
 from cnn_shift_stability_paired import (
@@ -23,6 +24,37 @@ from cnn_shift_stability_paired import (
 
 
 PAIR_INDICES = np.asarray([[0, 1], [0, 2], [1, 2]], dtype=np.int64)
+
+
+def no_cross_component_pair_mask(
+    *,
+    truth_original: np.ndarray,
+    truth_shifted: np.ndarray,
+    aligned_original: np.ndarray,
+    aligned_shifted: np.ndarray,
+    graph: csr_matrix,
+) -> np.ndarray:
+    """Keep pairs whose aligned predictions stay in each truth's mesh component."""
+    arrays = [
+        np.asarray(value, dtype=np.int64)
+        for value in (
+            truth_original,
+            truth_shifted,
+            aligned_original,
+            aligned_shifted,
+        )
+    ]
+    if any(value.shape != arrays[0].shape for value in arrays[1:]):
+        raise ValueError("truth and aligned prediction arrays must have equal shape")
+    if arrays[0].ndim != 2:
+        raise ValueError("truth and aligned prediction arrays must be two-dimensional")
+    _n_components, labels = connected_components(
+        graph, directed=False, return_labels=True
+    )
+    truth_a, truth_b, prediction_a, prediction_b = arrays
+    original_clean = labels[truth_a] == labels[prediction_a]
+    shifted_clean = labels[truth_b] == labels[prediction_b]
+    return np.all(original_clean & shifted_clean, axis=1)
 
 
 def pairwise_source_distances_mm(
@@ -196,6 +228,9 @@ def _write_report(path: Path, summary: dict[str, Any]) -> None:
         "",
         f"- Euclidean, per-sample mean: {_fmt(summary['deltax_euc_mm_by_sample'])} mm",
         f"- Geodesic, per-sample mean: {_fmt(summary['deltax_geo_mm_by_sample'])} mm",
+        f"- Euclidean on all pairs: {_fmt(summary['deltax_subsets']['all']['euc_mm'])} mm",
+        f"- Euclidean without this method's cross-component misses: {_fmt(summary['deltax_subsets']['no_cross_component']['euc_mm'])} mm",
+        f"- Cross-component pairs excluded only from the symmetric subset: {summary['deltax_subsets']['n_cross_component_excluded']}/{summary['n_samples']}.",
         f"- Previous posterior-mean Euclidean ΔX′: {summary['previous_deltax_euc_mm']} mm",
         "- Predictions were aligned independently to the corresponding original and shifted truths; truth is used only to define the controlled paired stability metric.",
         "",
@@ -275,6 +310,15 @@ def main(argv: list[str] | None = None) -> None:
         vertices_m=vertices,
         graph=graph,
     )
+    no_cross_component = no_cross_component_pair_mask(
+        truth_original=truth_a,
+        truth_shifted=truth_b,
+        aligned_original=deltax["aligned_original"],
+        aligned_shifted=deltax["aligned_shifted"],
+        graph=graph,
+    )
+    deltax_euc_by_sample = np.mean(deltax["euc_mm"], axis=1)
+    deltax_geo_by_sample = np.mean(deltax["geo_mm"], axis=1)
     correction = infer_neighbor_correction(
         truth_a,
         truth_b,
@@ -309,10 +353,25 @@ def main(argv: list[str] | None = None) -> None:
         "n_samples": n_samples,
         "previous_deltax_euc_mm": float(args.previous_deltax_euc_mm),
         "paired_alignment": "truth-anchored independently within original and shifted inputs",
-        "deltax_euc_mm_by_sample": summarize_distribution(np.mean(deltax["euc_mm"], axis=1)),
+        "deltax_euc_mm_by_sample": summarize_distribution(deltax_euc_by_sample),
         "deltax_euc_mm_by_source": summarize_distribution(deltax["euc_mm"].reshape(-1)),
-        "deltax_geo_mm_by_sample": summarize_distribution(np.mean(deltax["geo_mm"], axis=1)),
+        "deltax_geo_mm_by_sample": summarize_distribution(deltax_geo_by_sample),
         "deltax_geo_mm_by_source": summarize_distribution(deltax["geo_mm"].reshape(-1)),
+        "deltax_subsets": {
+            "all": {
+                "euc_mm": summarize_masked(
+                    deltax_euc_by_sample, np.ones(n_samples, dtype=bool)
+                ),
+                "geo_mm": summarize_masked(
+                    deltax_geo_by_sample, np.ones(n_samples, dtype=bool)
+                ),
+            },
+            "no_cross_component": {
+                "euc_mm": summarize_masked(deltax_euc_by_sample, no_cross_component),
+                "geo_mm": summarize_masked(deltax_geo_by_sample, no_cross_component),
+            },
+            "n_cross_component_excluded": int(np.sum(~no_cross_component)),
+        },
         "neighbor_correction": {
             "shift_mm": [float(x) for x in args.shift_mm],
             "min_dist_mm": float(args.min_dist_mm),
@@ -341,6 +400,7 @@ def main(argv: list[str] | None = None) -> None:
             "sample_index": sample,
             "neighbor_correction_triggered": bool(corrected[sample]),
             "changed_from_simple_snap": bool(correction["changed_from_simple"][sample]),
+            "no_cross_component_miss": bool(no_cross_component[sample]),
             "simple_snap_min_spacing_mm": float(correction["simple_min_distance_mm"][sample]),
             "original_min_spacing_mm": float(np.min(spacing_a[sample])),
             "shifted_min_spacing_mm": float(np.min(spacing_b[sample])),
@@ -361,6 +421,7 @@ def main(argv: list[str] | None = None) -> None:
         aligned_shifted=deltax["aligned_shifted"],
         deltax_euc_mm=deltax["euc_mm"],
         deltax_geo_mm=deltax["geo_mm"],
+        no_cross_component_mask=no_cross_component,
         neighbor_correction_triggered=corrected,
         simple_centroids=correction["simple_centroids"],
         source_spacing_original_mm=spacing_a,

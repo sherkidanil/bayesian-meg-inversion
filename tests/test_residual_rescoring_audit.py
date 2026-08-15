@@ -24,9 +24,25 @@ from residual_rescoring_audit import (
     parse_args,
     pooled_within_sample_rank_spearman,
     rank_nonfinite_worst,
+    scaled_spatial_params,
     spearman_with_nonfinite_worst,
     validate_localization_g,
 )
+
+
+def test_spatial_radius_ablation_scales_r_and_keeps_other_patch_parameters():
+    original = {
+        "R_mm": np.array([10.0, 8.0, 10.0]),
+        "sigma_mm_scale": 1.0 / 3.0,
+        "A0": np.ones(3),
+    }
+
+    scaled = scaled_spatial_params(original, radius_scale=0.7)
+
+    np.testing.assert_allclose(scaled["R_mm"], [7.0, 5.6, 7.0])
+    assert scaled["sigma_mm_scale"] == original["sigma_mm_scale"]
+    np.testing.assert_array_equal(scaled["A0"], original["A0"])
+    np.testing.assert_array_equal(original["R_mm"], [10.0, 8.0, 10.0])
 
 
 def _write_scenario(path: Path) -> None:
@@ -45,6 +61,7 @@ def _write_scenario(path: Path) -> None:
         edge_index=np.array([[0, 1], [1, 2], [2, 3]]),
         edge_weight_mm=np.ones(3),
         params_spatial=params_spatial,
+        params_temporal=np.array({"Fs": 1000.0}, dtype=object),
         G_for_simulation=np.full((2, 3, 4), np.nan),
     )
 
@@ -154,6 +171,21 @@ def test_cli_accepts_explicit_canonical_model_key_for_alias():
     assert args.model_key == "trial81_honest_4965"
 
 
+def test_cli_accepts_explicit_decoder_bandpass():
+    args = parse_args(
+        [
+            "--anna_dg0_npz", "anna_dg0.npz",
+            "--scenario_npz", "anna_dg0.npz",
+            "--out_dir", "report",
+            "--residual_bandpass_hz", "2", "25",
+            "--residual_filter_order", "4",
+        ]
+    )
+
+    assert args.residual_bandpass_hz == [2.0, 25.0]
+    assert args.residual_filter_order == 4
+
+
 def test_commit_provenance_preserves_start_head_when_repository_changes():
     provenance = build_commit_provenance("start-head", "write-head")
 
@@ -171,6 +203,14 @@ def test_frozen_smooth_selection_requires_honest_quadratic_dev_choice(tmp_path):
             {
                 "mode": "dev_tune",
                 "model_key": "trial81_honest_4965",
+                "residual_preprocessing": {
+                    "kind": "butterworth_bandpass",
+                    "low_hz": 2.0,
+                    "high_hz": 25.0,
+                    "order": 4,
+                    "sfreq_hz": 1000.0,
+                    "phase": "zero",
+                },
                 "selected": {
                     "estimator": "gibbs",
                     "score_form": "quadratic",
@@ -186,6 +226,12 @@ def test_frozen_smooth_selection_requires_honest_quadratic_dev_choice(tmp_path):
     assert selected["score_form"] == "quadratic"
     with pytest.raises(ValueError, match="model key"):
         load_frozen_smooth_selection(path, "trial81_push_3771")
+    with pytest.raises(ValueError, match="preprocessing"):
+        load_frozen_smooth_selection(
+            path,
+            "trial81_honest_4965",
+            expected_residual_preprocessing={"kind": "none"},
+        )
 
 
 def test_frozen_smooth_coordinates_use_only_draws_residuals_and_frozen_choice():

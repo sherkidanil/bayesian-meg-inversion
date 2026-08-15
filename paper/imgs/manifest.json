@@ -14,17 +14,17 @@
     "reports/closeout/inputs/residual_error_scatter_dg0.csv.gz"
   ],
   "outputs": {
-    "fig1_pipeline.pdf": "dbd4d90036362ee0b6b7588234775eecce2d716460ed6b107163c26df44b2f1f",
-    "fig1_pipeline.png": "6bbb7a8f64d6b94bf12bb7af3ac3832467d0d59f02c210d04a2fe1bc4d9b821d",
-    "fig2_decoders.pdf": "a9c48fc5532c0c16c9b887f0f35a3ccca50e21254d27d3073fffb73eeccc781f",
-    "fig2_decoders.png": "020504abe9e1d5b2693585efc55a234c823d7d024af9138922e05da054b340b6",
-    "fig3_accuracy_stability_frontier.pdf": "57d7cc25d53861f2ad63cfbc5a9b88d7ab1db1cf4a99ae7797b60bfe592eadcf",
-    "fig3_accuracy_stability_frontier.png": "11d83c28e4228384bee95fe628d5f8314bddda7276f10fb042299f4f4ab4a6dc",
-    "fig4_model_domain_matrix.pdf": "2b32f19e1971be36467c8f2abb7cdf945ccf943912aa460d85b2b73d498f03ef",
+    "fig1_pipeline.pdf": "be6e9873386ae1e41a9e84181d0c24e2f7d1ff95d2572442b26c9d3cb48801af",
+    "fig1_pipeline.png": "98008d0a4875cc2dc7094713d40a79576941814de534de328a786d7898c8b5b1",
+    "fig2_decoders.pdf": "93103a8e5ac16f58b9ba2115a13839ed83f400123da29db6d9acdc6c012c58f7",
+    "fig2_decoders.png": "669892d25df312b83823211b6fcf6a4437e919ae3dda5b61a20846d94dc89870",
+    "fig3_accuracy_stability_frontier.pdf": "d9fbb30aa232b7a1661b61e010b78762acb566aa3741540d8df8fd5c2aa1d120",
+    "fig3_accuracy_stability_frontier.png": "f5e56e737be6bdb91238cbcbc1b1364e586436e55b68a4f48b5c796918f7d3d5",
+    "fig4_model_domain_matrix.pdf": "b46c847837df70f5d0beeb5009f598ebf332913f5fd817bf45bc58c0b5e51374",
     "fig4_model_domain_matrix.png": "44e3316c9b8638418112286bad32feb15c32a2c8f98914331682f6c4a761ce20",
-    "fig5_deltax_distributions.pdf": "ec7038c8543df306a0dfb429295c8b35b6cdb2a6d1c8cf61d832ec6728e0047a",
-    "fig5_deltax_distributions.png": "9de529115e9af783662604a3d4b987c252dafb68c278609011226599ec57fdce",
-    "fig6_residual_vs_error.pdf": "c301b2d3f13a6a17588f58530c21cf62d761340a1c7e6d12b1a26e3eadd76c93",
-    "fig6_residual_vs_error.png": "efb8f1286c3afe7d3a795622b68bc774e818293c1bd24b9e9fba92bddf8ff06b"
+    "fig5_deltax_distributions.pdf": "39d5212aa0eec4270600571350c317b25bf32036131935062ee9f9b964587dc9",
+    "fig5_deltax_distributions.png": "df54e4a0d5ae266762babbd9d1b8325211eae70511c6c72ab8d0ae77e58afedc",
+    "fig6_residual_vs_error.pdf": "91901729316d7f9928f1945c0d1f99f68fba2873d911eb613640d0ba0e9ddc02",
+    "fig6_residual_vs_error.png": "e8db0bd7cef0c051b9c2dd3195f39d877752c358457e9c166201cc154a467a1d"
   }
 }

@@ -10,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from residual_rescoring import (
     ProjectedGaussianCache,
+    butterworth_bandpass_sensor_data,
     gaussian_profile,
     orthonormal_column_basis,
     residual_gibbs_weights,
@@ -18,6 +19,41 @@ from residual_rescoring import (
     subspace_residual,
     subspace_residual_from_covariance,
 )
+
+
+def test_butterworth_bandpass_matches_mne_iir_reference_padding():
+    from scipy.signal import butter, sosfiltfilt
+
+    rng = np.random.default_rng(301)
+    y = rng.normal(size=(3, 1800))
+    sos = butter(4, [2.0, 25.0], btype="bandpass", fs=1000.0, output="sos")
+    expected = sosfiltfilt(sos, y, axis=-1, padlen=1266)
+
+    actual = butterworth_bandpass_sensor_data(
+        y, sfreq_hz=1000.0, low_hz=2.0, high_hz=25.0, order=4
+    )
+
+    np.testing.assert_array_equal(actual, expected)
+
+
+def test_bandpass_preserves_candidate_sensor_subspace():
+    times = np.arange(1800, dtype=np.float64) / 1000.0
+    basis = np.array([[1.0, 0.2], [0.0, 1.0], [0.5, -0.3]])
+    temporal = np.stack(
+        [np.sin(2.0 * np.pi * 10.0 * times), np.cos(2.0 * np.pi * 18.0 * times)]
+    )
+    y = basis @ temporal
+
+    filtered = butterworth_bandpass_sensor_data(y, sfreq_hz=1000.0)
+
+    assert subspace_residual(basis, filtered) == pytest.approx(0.0, abs=2e-8)
+
+
+def test_bandpass_rejects_cutoff_at_or_above_nyquist():
+    with pytest.raises(ValueError, match="Nyquist"):
+        butterworth_bandpass_sensor_data(
+            np.ones((2, 100)), sfreq_hz=100.0, low_hz=2.0, high_hz=50.0
+        )
 
 
 def test_residual_is_zero_when_y_lies_in_candidate_subspace():

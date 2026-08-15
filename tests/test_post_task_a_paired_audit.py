@@ -14,10 +14,38 @@ from post_task_a_paired_audit import (
     compute_paired_deltax,
     read_estimator_metrics,
     infer_neighbor_correction,
+    no_cross_component_pair_mask,
     pairwise_source_distances_mm,
     parse_args,
     summarize_masked,
 )
+
+
+def test_no_cross_component_mask_requires_both_paired_runs_to_stay_with_truth():
+    graph = csr_matrix(
+        np.array(
+            [
+                [0.0, 1.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 1.0],
+                [0.0, 0.0, 1.0, 0.0],
+            ]
+        )
+    )
+    truth_original = np.array([[0, 2], [0, 2]])
+    truth_shifted = np.array([[1, 3], [1, 3]])
+    aligned_original = np.array([[1, 3], [2, 3]])
+    aligned_shifted = np.array([[0, 2], [0, 2]])
+
+    mask = no_cross_component_pair_mask(
+        truth_original=truth_original,
+        truth_shifted=truth_shifted,
+        aligned_original=aligned_original,
+        aligned_shifted=aligned_shifted,
+        graph=graph,
+    )
+
+    assert mask.tolist() == [True, False]
 
 
 def test_pairwise_source_distances_reports_all_three_pairs_in_mm():

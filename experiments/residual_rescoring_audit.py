@@ -33,6 +33,7 @@ SCENARIO_KEYS = (
     "edge_index",
     "edge_weight_mm",
     "params_spatial",
+    "params_temporal",
 )
 
 
@@ -45,7 +46,9 @@ def _sha256_file(path: str | Path) -> str:
 
 
 def load_frozen_smooth_selection(
-    path: str | Path, expected_model_key: str
+    path: str | Path,
+    expected_model_key: str,
+    expected_residual_preprocessing: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Load the pre-dev frozen quadratic Gibbs choice without outcome access."""
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -53,6 +56,11 @@ def load_frozen_smooth_selection(
         raise ValueError("frozen selection must come from dev_tune mode")
     if payload.get("model_key") != expected_model_key:
         raise ValueError("frozen selection model key does not match runtime")
+    if (
+        expected_residual_preprocessing is not None
+        and payload.get("residual_preprocessing") != expected_residual_preprocessing
+    ):
+        raise ValueError("frozen selection residual preprocessing does not match runtime")
     selected = dict(payload.get("selected", {}))
     if selected.get("estimator") != "gibbs":
         raise ValueError("frozen selection must use the Gibbs estimator")
@@ -90,6 +98,21 @@ def validate_localization_g(value: np.ndarray) -> np.ndarray:
     return leadfield
 
 
+def scaled_spatial_params(
+    params_spatial: dict[str, Any], *, radius_scale: float
+) -> dict[str, Any]:
+    """Return an isolated patch-model copy with only R (and thus sigma) scaled."""
+    scale = float(radius_scale)
+    if not np.isfinite(scale) or scale <= 0.0:
+        raise ValueError("radius_scale must be finite and positive")
+    result = {
+        key: np.array(value, copy=True) if isinstance(value, np.ndarray) else value
+        for key, value in params_spatial.items()
+    }
+    result["R_mm"] = np.asarray(result["R_mm"], dtype=np.float64) * scale
+    return result
+
+
 def _load_constant_anna_g(path: Path) -> np.ndarray:
     with np.load(path, allow_pickle=True) as payload:
         matrices = np.asarray(payload["G_for_simulation"])
@@ -113,7 +136,11 @@ def load_anna_audit_inputs(
         scenario: dict[str, Any] = {}
         for key in SCENARIO_KEYS:
             value = payload[key]
-            scenario[key] = value.item() if key == "params_spatial" else np.asarray(value)
+            scenario[key] = (
+                value.item()
+                if key in {"params_spatial", "params_temporal"}
+                else np.asarray(value)
+            )
     if scenario["Ys"].shape[1] != localization_g.shape[0]:
         raise ValueError("scenario sensor dimension does not match anna_dg0 localization G")
     if scenario["vertices"].shape[0] != localization_g.shape[1]:
@@ -396,6 +423,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--seed", type=int, default=20260810)
     parser.add_argument("--gpu", default="1")
+    parser.add_argument("--residual_bandpass_hz", nargs=2, type=float, default=None)
+    parser.add_argument("--residual_filter_order", type=int, default=4)
+    parser.add_argument("--patch_radius_scale", type=float, default=1.0)
     return parser.parse_args(argv)
 
 
@@ -421,7 +451,10 @@ def main() -> None:
     from eval_posterior_mean_100 import build_spec_from_model_dir, make_multi_sampler
     from metrics import build_graph_from_edges, project_coords_to_vertices
     from optuna_sweep_cnn import pool_time
-    from residual_rescoring import residual_rescore_draws
+    from residual_rescoring import (
+        butterworth_bandpass_sensor_data,
+        residual_rescore_draws,
+    )
 
     anna_path = Path(args.anna_dg0_npz).resolve()
     scenario_path = Path(args.scenario_npz).resolve()
@@ -440,8 +473,24 @@ def main() -> None:
     if args.model_key:
         spec["model_key"] = str(args.model_key)
     runtime = load_checkpoint_runtime(spec)
+    if args.residual_bandpass_hz is None:
+        residual_preprocessing = {"kind": "none"}
+    else:
+        low_hz, high_hz = (float(value) for value in args.residual_bandpass_hz)
+        residual_preprocessing = {
+            "kind": "butterworth_bandpass",
+            "low_hz": low_hz,
+            "high_hz": high_hz,
+            "order": int(args.residual_filter_order),
+            "sfreq_hz": float(data["params_temporal"]["Fs"]),
+            "phase": "zero",
+        }
     frozen_selection = (
-        load_frozen_smooth_selection(args.selection, str(runtime["model_key"]))
+        load_frozen_smooth_selection(
+            args.selection,
+            str(runtime["model_key"]),
+            expected_residual_preprocessing=residual_preprocessing,
+        )
         if args.selection
         else None
     )
@@ -457,7 +506,9 @@ def main() -> None:
     )
     print("[rescore] precomputing all-pairs geodesic distances", flush=True)
     full_geo_mm = np.asarray(dijkstra(graph, directed=False), dtype=np.float64)
-    params_spatial = data["params_spatial"]
+    params_spatial = scaled_spatial_params(
+        data["params_spatial"], radius_scale=args.patch_radius_scale
+    )
     radii = params_spatial.get("R_mm", [10.0, 8.0, 10.0])
     amplitudes = params_spatial.get("A0", None)
 
@@ -501,9 +552,18 @@ def main() -> None:
             theta_draws = (
                 normalized * theta_std[None, :] + theta_mean[None, :]
             ).reshape(int(args.n_draws), 3, 3)
+            residual_y = y
+            if residual_preprocessing["kind"] == "butterworth_bandpass":
+                residual_y = butterworth_bandpass_sensor_data(
+                    y,
+                    sfreq_hz=residual_preprocessing["sfreq_hz"],
+                    low_hz=residual_preprocessing["low_hz"],
+                    high_hz=residual_preprocessing["high_hz"],
+                    order=residual_preprocessing["order"],
+                )
             residuals, residual_index = residual_rescore_draws(
                 theta_draws,
-                y,
+                residual_y,
                 localization_g,
                 vertices,
                 graph,
@@ -632,6 +692,9 @@ def main() -> None:
         "common_random_numbers_meaning": (
             "same initial-noise keys only; conditional ODE trajectories differ with Y"
         ),
+        "residual_preprocessing": residual_preprocessing,
+        "patch_radius_scale": float(args.patch_radius_scale),
+        "decoder_R_mm": np.asarray(params_spatial["R_mm"]).tolist(),
         "pool": pool,
         "ode_steps": ode_steps,
         "jax_devices": str(jax.devices()),
@@ -698,6 +761,7 @@ def main() -> None:
         "localization_g_shape": list(localization_g.shape),
         "localization_g_dtype": str(localization_g.dtype),
         "scenario_g_loaded": False,
+        "residual_preprocessing": residual_preprocessing,
     }
     (out_dir / "environment.json").write_text(
         json.dumps(environment, indent=2) + "\n", encoding="utf-8"

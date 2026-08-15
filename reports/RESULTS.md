@@ -46,24 +46,32 @@ B(c)=G\Phi(c)^\top,
 r(c)=\frac{\lVert(I-P_B)Y\rVert_F}{\lVert Y\rVert_F}.
 \]
 
+The final decoder applies the same zero-phase fourth-order 2–25 Hz Butterworth
+filter as the RAP MUSIC pipeline, only before residual evaluation. If `F`
+acts on time, `Y_f=YF=B(AF)+ηF`; therefore `col(B)` is unchanged exactly. The
+CFM sampler still receives raw `Y`.
+
 It uses only `Y`, the persisted localization `G`, mesh geometry, and the
 dataset-level spatial patch parameters. Ground truth is excluded from the
 estimator API. On the final Anna-G model and the 315 `dG=0` original inputs:
 
 | decoder | honest? | MAE euc, mm | MAE geo, mm | interpretation |
 |---|:---:|---:|---:|---|
-| single draw | yes | 5.1636 | 9.7359 | raw posterior sample |
+| single draw | yes | 5.1645 | 9.7368 | raw posterior sample; filtering-independent control |
 | posterior mean | yes | 3.8222 | 7.5168 | averages all modes |
 | posterior medoid | yes | 4.1285 | 8.2366 | densest draw mode |
-| residual argmin | yes | **2.0307** | **3.6298** | best sensor-subspace fit |
-| frozen smooth | yes | 2.2727 | 4.3826 | continuous Gibbs decoder |
+| residual argmin | yes | **2.0026** | **3.5872** | filtered sensor-subspace fit |
+| frozen smooth | yes | 2.0674 | 3.6551 | refrozen filtered Gibbs decoder |
 | oracle best-of-100 | **no** | 1.3143 | 1.6849 | truth-selected upper bound only |
 
 The residual is scientifically informative, not merely a post-hoc score. Its
 mean within-sample Spearman association with true Euclidean draw error is
-`0.518` on original and `0.539` on shifted `dG=0` inputs. The association stays
-positive after `dG` perturbation (`0.507/0.525`). Thus the measured data can
-rank better and worse posterior draws without access to truth.
+`0.519` on original and `0.540` on shifted `dG=0` inputs. The association stays
+positive after `dG` perturbation (`0.509/0.527`). Filtering changed these
+correlations by only `+0.001…+0.002`, so the expected large ranking-contrast
+gain was not observed; the practical gain comes mainly from refreezing a
+colder working point. The measured data nevertheless rank better and worse
+posterior draws without access to truth.
 
 ![Decoder comparison](../paper/imgs/fig2_decoders.png)
 
@@ -119,39 +127,50 @@ that the original weights had failed in their own domain.
 The final Anna-G model uses a quadratic Gibbs decoder whose temperature was
 frozen on an independent 350-pair development split by the preregistered rule
 “minimize `ΔX′` subject to `MAE_euc ≤ 1.10 × MAE_euc(argmin)`.” The selected
-temperature was `τ = 0.0383041`; no Anna collaboration pair was used for this
-choice.
+temperature after 2–25 Hz residual filtering was `τ = 0.0195161`; the old
+unfiltered value `0.0383041` was not reused. No Anna collaboration pair was
+used for either choice.
 
-| method / scenario | samples | accuracy | paired `ΔX′` euc, mm | comparability in this table |
-|---|---:|---|---:|---|
-| CFM Anna-G, `dG=0` | 315 pairs | 2.2727 Euc / 4.3826 Geo | **5.8471** | complete Euc; Geo finite-only |
-| RAP MUSIC, reported `dG=0` | 315 pairs | **4.05 “MAE Geo”** | 5.85 | same collaboration simulations; graph-based Geo |
-| CFM Anna-G, `dG≠0` | 315 pairs | 2.3959 Euc / 4.3991 Geo | **5.9380** | localization uses unperturbed persisted Anna G |
-| RAP MUSIC, reported `dG≠0` | 315 pairs | **4.78 “MAE Geo”** | 6.13 | same collaboration simulations; graph-based Geo |
+| method / scenario | accuracy on original inputs | `ΔX′` all pairs | `ΔX′` after method's own cross-component exclusions |
+|---|---:|---:|---:|
+| CFM Anna-G filtered, `dG=0` | **2.0674 Euc / 3.6551 Geo** | 5.9583 (`n=315`) | **5.9144** (`n=305`) |
+| RAP MUSIC, reported `dG=0` | 4.05 Geo | not reported | 5.85 (own valid subset) |
+| CFM Anna-G filtered, `dG≠0` | **2.1991 Euc / 4.0218 Geo** | 6.1534 (`n=315`) | **6.1489** (`n=301`) |
+| RAP MUSIC, reported `dG≠0` | 4.78 Geo | not reported | 6.13 (own valid subset) |
 
 Anna confirmed that `4.05/4.78` and `5.85/6.13` were computed on the same
 collaboration simulations and that the geodesic accuracy uses the real mesh
-graph. The results are therefore numerically comparable at the dataset and
-metric-family level. The stability values are essentially aligned; the
-accuracy values are also of the same order. Exact disconnected-component and
-source-matching conventions were not collected and are retained as an accepted
-implementation-level limitation rather than an open experimental task. We do
-not claim statistical superiority without per-sample RAP MUSIC outputs.
+graph. Her code also shows that RAP MUSIC excludes pairs with its own
+interhemispheric failures, while the complete CFM metric includes all 315. The
+last column is the symmetric comparison: each method excludes its own failures.
+The resulting stability values remain numerically aligned. A common-intersection
+mask is unavailable and is not inferred.
+
+Absolute accuracy still is not an algorithm-only comparison. The CFM residual
+uses the true Gaussian patch family and radii `R=(10,8,10) mm`, while RAP MUSIC
+fits point dipoles; CFM/simulation use fixed cortical-normal orientation while
+RAP MUSIC uses free orientation; RAP estimates noise from the known empty
+1.7–1.8 s window. We therefore do not claim statistical superiority.
 
 ## 5. Accuracy–stability frontier
 
-The development curve spans the measured limits `τ→0` (residual argmin) and
-`τ→∞` (posterior mean). Its non-dominated points are:
+The filtered development curve spans the measured limits `τ→0` (residual
+argmin) and large `τ` (posterior mean). Its non-dominated points are:
 
 | decoder point | `τ` | MAE euc, mm | `ΔX′` euc, mm |
 |---|---:|---:|---:|
-| quadratic `2^-4` | 0.0191521 | **2.0409** | 5.5626 |
-| frozen working point, `2^-3` | 0.0383041 | 2.2322 | 5.5624 |
-| quadratic `2^-2` | 0.0766083 | 2.5828 | **5.4103** |
-| argmin limit | 0 | 2.0674 | 5.7304 |
-| posterior-mean limit | ∞ | 3.7490 | 5.6459 |
+| quadratic `2^-6` | 0.0048790 | **2.0157** | 5.6675 |
+| quadratic `2^-5` | 0.0097580 | 2.0190 | 5.6559 |
+| **frozen working point, `2^-4`** | **0.0195161** | 2.0221 | 5.5383 |
+| quadratic `2^-2` | 0.0780642 | 2.5938 | **5.3997** |
+| argmin limit | 0 | 2.0260 | 5.6854 |
+| large-`τ` limit | 79.94 | 3.7490 | 5.6459 |
 
 ![Accuracy–stability frontier](../paper/imgs/fig3_accuracy_stability_frontier.png)
+
+The preregistered rule selected `τ=0.0195161` with dev `MAE_euc=2.0221 mm` and
+`ΔX′=5.5383 mm`; filtered hard-argmin MAE was `2.0260 mm`. Filtering moves the
+frozen point but does not create a new estimator family.
 
 The reported RAP point `(4.05, 5.85)` uses geodesic accuracy, whereas the CFM
 frontier uses Euclidean accuracy. It is therefore shown for numerical context,
@@ -164,15 +183,19 @@ For the final Anna-G model, the smooth paired output distributions are:
 
 | scenario | mean `ΔX`, mm | mean `ΔX′`, mm | median | p90 | maximum |
 |---|---:|---:|---:|---:|---:|
-| `dG=0` | 4.5663 | **5.8471** | 5.7616 | 9.0169 | 12.8436 |
-| `dG≠0` | 4.5567 | **5.9380** | 5.8039 | 9.2150 | 15.2087 |
+| `dG=0` | 4.5663 | **5.9583** | 5.9222 | 9.0650 | 13.3051 |
+| `dG≠0` | 4.5567 | **6.1534** | 6.0029 | 9.2958 | 15.2087 |
 
 ![Paired output-displacement distributions](../paper/imgs/fig5_deltax_distributions.png)
 
-Across decoder and input branch, `dG` changes geodesic localization MAE by
-`+0.017` to `+0.433 mm`, reasonably summarized as order `+0.3 mm`. Its paired
-Euclidean `ΔX′` cost is `+0.070` to `+0.091 mm`, order `+0.09 mm`. These
-intervals are smaller than the natural server-G/Anna-G mismatch cost.
+Across filtered decoder and input branch, `dG` changes geodesic localization
+MAE by `+0.205` to `+0.367 mm`. Averaging original and shifted branches gives
+`+0.265 mm` for hard argmin and `+0.286 mm` for frozen smoothing. Against the
+reported RAP MUSIC change `+0.73 mm`, normalized sensitivity is approximately
+`2.55×` lower for the frozen CFM point, consistent with the earlier order-2.4
+result. Paired Euclidean `ΔX′` cost is `+0.060 mm` for argmin and `+0.195 mm`
+for frozen smoothing. These remain smaller than the natural server-G/Anna-G
+mismatch cost.
 
 The Monte Carlo control is a discrete-tail phenomenon: median jitter is zero
 at 100, 300, and 1000 draws, while occasional estimates jump by millimetres.
@@ -184,6 +207,12 @@ from 100 to 1000. At 100 draws, restricting to zero-jitter samples reduced
 response to the input shift. This `n=30` subset is diagnostic and does not
 replace the `n=315` primary estimates.
 
+The patch-radius disclosure is experimentally material. On filtered `dG=0`
+original inputs, hard residual selection gives `2.003/3.587 mm` Euc/Geo with
+the true radii. Using `0.7R` degrades this to `2.928/5.122 mm`; using `1.3R`
+gives `2.638/4.722 mm`. The decoder's knowledge of the source family therefore
+accounts for a substantial part of its absolute accuracy.
+
 ## 7. Limitations, closed questions, and open collaboration checks
 
 ### Closed without further work
@@ -193,7 +222,9 @@ replace the `n=315` primary estimates.
   renamed `oracle_best_of_N_*`; same-corpus honest replacements are used where
   available.
 - **Permutation swapping between draws:** non-identity rate `0.014%`; rejected
-  as the reason posterior averaging failed.
+  as the reason posterior averaging failed. The small rate is explained by the
+  fixed temporal windows and frequency bands that distinguish the three source
+  slots. It need not generalize when those signatures are randomized.
 - **`min_perm_loss`:** no invalid minimum arithmetic. The implementation chooses
   one permutation after batch averaging, so it is batch-global rather than a
   per-sample set loss. No repair or retraining is part of closeout.
@@ -209,9 +240,11 @@ replace the `n=315` primary estimates.
 
 Anna confirmed that both methods' reported values use the same collaboration
 simulations and that RAP MUSIC's geodesic accuracy is evaluated on the real
-mesh graph. Exact disconnected-component and source-matching implementation
-details were not collected. They remain a documented limitation; no further
-external clarification or computation is required for closeout.
+mesh graph. Code review resolved source matching and showed the asymmetric
+failure subsets, point-patch versus Gaussian-patch model, free versus fixed
+orientation, fixed temporal signatures, and empty-window noise estimate. These
+are now explicit comparison boundaries; no further external clarification is
+required for this recomputation.
 
 ## Provenance index
 
@@ -219,6 +252,7 @@ external clarification or computation is required for closeout.
 - Oracle, `dG`, and `min_perm_loss` audit: `reports/closeout/phase2-debt-audit.md`
 - Disk review, no deletions: `reports/closeout/disk-cleanup-candidates.md`
 - Controlled Anna-G experiment: `reports/2026-08-11-anna-g-retrain-scientific-report.md`
+- Filtered residual recomputation: `reports/2026-08-15-filtered-residual-recompute-report.md`
 - Figure generator: `closeout_figures.py`
 - Figure manifest with SHA-256 hashes: `paper/imgs/manifest.json`
 

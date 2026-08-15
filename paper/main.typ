@@ -80,6 +80,11 @@ energy outside that subspace,
 
 $ r(c) = norm((I-P_B)Y)_F / norm(Y)_F. $
 
+Before residual evaluation only, we apply the same zero-phase fourth-order
+2--25 Hz Butterworth filter as the RAP MUSIC pipeline. Writing the temporal
+filter as $F$ gives $Y_f=Y F=B(A F)+eta F$, so $op("col")(B)$ is unchanged
+exactly. The CFM sampler continues to receive unfiltered $Y$.
+
 The hard decoder chooses $arg min_s r(c^(s))$. To reduce its discontinuity, we
 also use a frozen Gibbs decoder
 
@@ -108,6 +113,9 @@ metric and finite-only mesh-geodesic MAE with the number of disconnected cases.
 For paired original and shifted inputs, each estimate is first assigned to its
 own truth ordering. $Delta X'$ is then the mean Euclidean displacement between
 the two aligned predictions. The mean physical input displacement is 4.566 mm.
+We report both all 315 pairs and a symmetric subset excluding CFM's own
+cross-component failures, because the RAP MUSIC implementation excludes its
+own such failures. A common intersection mask is unavailable.
 
 The original training corpus did not persist its lead field. Projector-aware
 calibration classified it as server-like, whereas the collaboration datasets
@@ -127,11 +135,11 @@ original $"dG"=0$ inputs, the final Anna-$G$ model gives:
 #table(
   columns: (1.7fr, 0.8fr, 0.9fr, 0.9fr),
   table.header([Decoder], [Honest], [MAE Euc], [MAE Geo]),
-  [Single draw], [yes], [5.164], [9.736],
+  [Single draw], [yes], [5.164], [9.737],
   [Posterior mean], [yes], [3.822], [7.517],
   [Medoid], [yes], [4.129], [8.237],
-  [Residual argmin], [yes], [*2.031*], [*3.630*],
-  [Frozen smooth], [yes], [2.273], [4.383],
+  [Residual argmin], [yes], [*2.003*], [*3.587*],
+  [Frozen smooth], [yes], [2.067], [3.655],
   [Oracle best-of-100], [*no*], [1.314], [1.685],
 )
 
@@ -141,8 +149,10 @@ original $"dG"=0$ inputs, the final Anna-$G$ model gives:
 )
 
 The mean within-sample Spearman association between residual and true
-Euclidean draw error is 0.518 on original and 0.539 on shifted inputs. Thus the
-data rank candidate quality without truth (@residual-scatter).
+Euclidean draw error is 0.519 on original and 0.540 on shifted inputs. Filtering
+increased these values by only 0.001--0.002; it did not uncover a large hidden
+ranking signal. The data nevertheless rank candidate quality without truth
+(@residual-scatter).
 
 #figure(
   image("imgs/fig6_residual_vs_error.pdf", width: 92%),
@@ -169,44 +179,56 @@ weights were undertrained.
 
 == Accuracy--stability frontier
 
-On the independent Anna-$G$ development split, the frozen point is $tau=0.0383$
-with Euclidean MAE 2.232 mm and $Delta X'=5.562$ mm. The non-dominated curve
-extends from 2.041/5.563 to 2.583/5.410 mm (MAE/$Delta X'$). The hard-argmin and
-posterior-mean limits remain visible in @frontier.
+After 2--25 Hz filtering, the temperature was refrozen on the independent
+Anna-$G$ development split by the same preregistered rule. The selected point
+is $tau=0.01952$ with Euclidean MAE 2.022 mm and $Delta X'=5.538$ mm; filtered
+hard-argmin MAE is 2.026 mm. The filtered non-dominated curve extends from
+2.016/5.667 to 2.594/5.400 mm (MAE/$Delta X'$).
 
 #figure(
   image("imgs/fig3_accuracy_stability_frontier.pdf", width: 82%),
-  caption: [Measured accuracy--stability frontier. The reported RAP MUSIC point is shown for numerical context; its accuracy coordinate is geodesic whereas the CFM frontier uses Euclidean accuracy.],
+  caption: [Filtered 2--25 Hz accuracy--stability frontier. The reported RAP MUSIC point is shown for numerical context; its accuracy coordinate is geodesic whereas the CFM frontier uses Euclidean accuracy, and source priors and failure subsets differ.],
 ) <frontier>
 
 == Paired stability and $"dG"$
 
-On the final Anna-$G$ model, frozen smoothing yields $Delta X'=5.847$ mm for
-$"dG"=0$ and 5.938 mm for $"dG" != 0$, against mean physical input shifts of 4.566
-and 4.557 mm. The full distributions are shown in @deltax.
+On all 315 pairs, filtered frozen smoothing yields $Delta X'=5.958$ mm for
+$"dG"=0$ and 6.153 mm for $"dG" != 0$, against mean physical input shifts of
+4.566 and 4.557 mm. Excluding CFM's own cross-component failures gives 5.914
+mm ($n=305$) and 6.149 mm ($n=301$). The full all-pair distributions are shown
+in @deltax.
 
 #figure(
   image("imgs/fig5_deltax_distributions.pdf", width: 82%),
   caption: [Per-pair output displacement. Diamonds mark the mean physical input displacement.],
 ) <deltax>
 
-Across decoder and input branch, $"dG"$ changes geodesic localization by +0.017
-to +0.433 mm (order +0.3 mm), and paired Euclidean $Delta X'$ by +0.070 to
-+0.091 mm (order +0.09 mm). Monte Carlo jitter has zero median and a rare
+Across filtered decoder and input branch, $"dG"$ changes geodesic localization
+by +0.205 to +0.367 mm. The frozen mean across branches is +0.286 mm, versus
+the reported RAP MUSIC change +0.73 mm, giving approximately 2.55-times lower
+normalized sensitivity. Paired Euclidean $Delta X'$ changes by +0.060 mm for
+hard selection and +0.195 mm for smoothing. Monte Carlo jitter has zero median and a rare
 multi-millimetre tail. Increasing draws from 100 to 1000 reduced the nonzero
 jump fraction from 43% to 17% on $"dG"=0$ in a fixed 30-pair diagnostic, but did
 not remove the substantive response to the input shift.
 
 == Comparison boundary and limitations
 
-The CFM stability values are numerically close to the reported RAP MUSIC values
-5.85 and 6.13 mm. Anna confirmed that the reported RAP accuracy and stability
-values use the same collaboration simulations and that “MAE Geo” is evaluated
-on the real mesh graph. This makes the results numerically comparable at the
-dataset and metric-family level. Exact disconnected-component and source-
-matching conventions were not collected and remain an implementation-level
-limitation. We therefore report numerical alignment, but not statistical
-superiority without per-sample RAP MUSIC outputs.
+The symmetric-subset CFM stability values 5.914 and 6.149 mm are numerically
+close to the reported RAP MUSIC values 5.85 and 6.13 mm. The simulations,
+mesh-geodesic metric, and truth-anchored source matching are shared, but each
+method excludes its own cross-component failures. Moreover, our decoder uses
+the true Gaussian patch family and radii whereas RAP MUSIC fits point dipoles;
+CFM uses fixed cortical-normal orientation whereas RAP uses free orientation;
+RAP estimates noise from the known empty 1.7--1.8 s window. A radius error of
++/-30% degrades hard-decoder geodesic MAE from 3.587 to 4.722--5.122 mm, so
+patch-shape knowledge is material. We therefore report numerical alignment,
+not statistical superiority.
+
+The three source slots are also distinguished by fixed temporal windows and
+frequency bands in every sample. This explains the measured 0.014% rate of
+non-identity draw permutations and limits generalization to simulations with
+randomized source signatures.
 
 Original inputs are systematically harder than shifted inputs under the fixed
 head-coordinate displacement. Source spacing, lead-field norm and normal angle,

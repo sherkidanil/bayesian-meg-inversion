@@ -5,8 +5,9 @@ Amortised posterior inference for the MEG inverse problem: a conditional flow-ma
 Companion code to ongoing work at Skoltech / HSE / AIRI, following [Bayesian Inverse Problems Meet Flow Matching](https://arxiv.org/abs/2503.01375) (arXiv:2503.01375).
 
 > **Status: scientific closeout complete.** The frozen numerical source of
-> truth is [`reports/RESULTS.md`](reports/RESULTS.md). Comparison with RAP MUSIC
-> remains conditional on three cross-lab definition checks listed below.
+> truth is [`reports/RESULTS.md`](reports/RESULTS.md). The 2–25 Hz recomputation
+> and comparison boundaries are documented in
+> [`reports/2026-08-15-filtered-residual-recompute-report.md`](reports/2026-08-15-filtered-residual-recompute-report.md).
 
 ---
 
@@ -30,6 +31,11 @@ $$r(c) = \frac{\|(I - P_B)\,Y\|_F}{\|Y\|_F}, \qquad B = G\,\Phi(c)^{\top}, \qqua
 
 Since $Y = BA$ for unknown $A$, every time sample must lie in the $K$-dimensional column space of $B$. Minimising over all time courses is analytic, so $A$ is never computed. This is subspace fitting — the same geometry MUSIC exploits — evaluated on network proposals instead of a grid scan. It uses only $Y$, $G$ and the patch model; no ground truth.
 
+The final residual path uses the same zero-phase fourth-order 2–25 Hz
+Butterworth filter as RAP MUSIC. If the temporal filter is $F$, then
+$Y_f=YF=B(AF)+\eta F$, so filtering leaves $\operatorname{col}(B)$ unchanged.
+The CFM sampler still receives unfiltered sensor data.
+
 Samples are then combined by Gibbs weighting, $w_s \propto \exp(-r_s^2 / 2\tau^2)$, which keeps argmin's accuracy while staying continuous in $Y$.
 
 ## Results
@@ -43,25 +49,33 @@ Evaluated on 315 paired simulations with the final Anna-lead-field model.
 | Single posterior sample | 5.164 | 9.736 | no |
 | Naive posterior mean | 3.822 | 7.517 | no |
 | Posterior medoid | 4.129 | 8.237 | no |
-| **Residual argmin** | **2.031** | **3.630** | **no** |
-| Frozen smooth | 2.273 | 4.383 | no |
+| **Residual argmin** | **2.003** | **3.587** | **no** |
+| Frozen smooth | 2.067 | 3.655 | no |
 | Oracle best-of-100 | 1.314 | 1.685 | yes — upper bound only |
 
 Residual scoring roughly halves the error of the naive estimator without
 access to truth. The mean within-sample Spearman association between residual
-and true draw error is 0.518.
+and true draw error is 0.519.
 
 **Localisation accuracy and shift stability**, at input shift $\Delta X \approx 4.57$ mm:
 
 | Scenario | MAE euc | MAE geo | $\Delta X'$ euc |
 |---|---:|---:|---:|
-| Anna-G model, `dG=0` | 2.273 | 4.383 | **5.847** |
-| Anna-G model, `dG≠0` | 2.396 | 4.399 | **5.938** |
+| Anna-G model, `dG=0` | 2.067 | 3.655 | **5.958** |
+| Anna-G model, `dG≠0` | 2.199 | 4.022 | **6.153** |
 
-Across decoder and input branch, `dG` costs +0.017 to +0.433 mm in geodesic
-accuracy and +0.070 to +0.091 mm in paired stability. The full
-accuracy–stability frontier and model-by-domain matrix are in the canonical
-results report.
+After excluding CFM's own cross-component failures, symmetrically with the RAP
+MUSIC implementation, stability is 5.914 mm (`n=305`) and 6.149 mm (`n=301`).
+The method-specific RAP subsets give 5.85 and 6.13 mm. Across input branches,
+the filtered smooth decoder's geodesic `dG` cost is +0.286 mm versus the
+reported RAP change +0.73 mm, approximately 2.55-times lower normalized
+sensitivity. The full accuracy–stability frontier and model-by-domain matrix
+are in the canonical results report.
+
+Absolute accuracy is not an algorithm-only comparison: the CFM decoder knows
+the true Gaussian patch family and radii, while RAP MUSIC fits point dipoles;
+fixed/free orientation and noise-window information also differ. A ±30% radius
+ablation degrades CFM hard-decoder geodesic MAE from 3.587 to 4.722–5.122 mm.
 
 ## What this repository also documents
 
@@ -104,17 +118,15 @@ python experiments/shift_stability_paired.py --dataset_npz <paired.npz> --estima
 
 Every run writes `summary.json` with input SHA-256 hashes, git HEAD, and a flag recording whether the repository changed mid-run.
 
-## Open questions
+## Comparison boundary
 
-Only cross-lab definitions remain open:
-
-1. Did the reported RAP MUSIC accuracy values 4.05 and 4.78 mm use these same
-   315 pairs or an earlier 300-sample corpus?
-2. What graph and disconnected-component policy defines RAP `MAE Geo`?
-3. How were the three sources matched for RAP $\Delta X'$?
-
-The project does not open new estimators, retraining runs, sweeps, or post-hoc
-asymmetry hypotheses during closeout.
+Code review closed the graph, source-matching, dataset, and metric-definition
+questions. Each method nevertheless excludes its own cross-component failures,
+and no common-intersection mask is available. The pipelines also differ in
+source-shape prior, orientation model, fixed temporal signatures, and RAP's
+empty-window noise estimate. Accordingly, the repository claims lower
+within-method sensitivity to `dG`, not absolute statistical superiority over
+RAP MUSIC.
 
 ## Authors
 
