@@ -25,7 +25,9 @@ Full derivations are in [`docs/math.md`](docs/math.md).
 
 **Sampling.** A conditional flow-matching model is trained on simulations to sample from the posterior. Inference integrates an ODE from noise, so each random seed yields a different plausible source configuration.
 
-**Decoding.** The interesting part. A distribution of 100 samples must collapse to one answer, and the choice of decoder dominates accuracy — more than the trained weights do. The decoder scores each candidate $c$ by how much sensor energy its patches fail to explain:
+**Decoding.** A distribution of 400 samples must collapse to one answer. The
+decoder scores each candidate $c$ by how much sensor energy its patches fail to
+explain:
 
 $$r(c) = \frac{\|(I - P_B)\,Y\|_F}{\|Y\|_F}, \qquad B = G\,\Phi(c)^{\top}, \qquad P_B = B(B^{\top}B)^{-1}B^{\top}$$
 
@@ -36,46 +38,36 @@ Butterworth filter as RAP MUSIC. If the temporal filter is $F$, then
 $Y_f=YF=B(AF)+\eta F$, so filtering leaves $\operatorname{col}(B)$ unchanged.
 The CFM sampler still receives unfiltered sensor data.
 
-Samples are then combined by Gibbs weighting, $w_s \propto \exp(-r_s^2 / 2\tau^2)$, which keeps argmin's accuracy while staying continuous in $Y$.
+Quadratic Gibbs weights, $w_s \propto \exp(-r_s^2 / 2\tau^2)$, are converted
+to a cortical geodesic medoid for every source slot. This keeps the estimate on
+the cortical surface and avoids averaging between opposite banks of a sulcus.
+Each training seed freezes its own $\tau$ on dev before held-out is opened.
 
 ## Results
 
-Evaluated on 315 paired simulations with the final Anna-lead-field model.
+On the matched server-lead-field benchmark, temporal-attention CFM with the
+cortical medoid and `S=400` dominates the matched RAP MUSIC pipeline:
 
-**Decoder comparison**, `dG=0` original inputs:
-
-| Decoder | MAE euc | MAE geo | Uses ground truth |
-|---|---:|---:|:-:|
-| Single posterior sample | 5.164 | 9.736 | no |
-| Naive posterior mean | 3.822 | 7.517 | no |
-| Posterior medoid | 4.129 | 8.237 | no |
-| **Residual argmin** | **2.003** | **3.587** | **no** |
-| Frozen smooth | 2.067 | 3.655 | no |
-| Oracle best-of-100 | 1.314 | 1.685 | yes — upper bound only |
-
-Residual scoring roughly halves the error of the naive estimator without
-access to truth. The mean within-sample Spearman association between residual
-and true draw error is 0.519.
-
-**Localisation accuracy and shift stability**, at input shift $\Delta X \approx 4.57$ mm:
-
-| Scenario | MAE euc | MAE geo | $\Delta X'$ euc |
+| Method | MAE euc | MAE geo | $\Delta X'$ euc |
 |---|---:|---:|---:|
-| Anna-G model, `dG=0` | 2.067 | 3.655 | **5.958** |
-| Anna-G model, `dG≠0` | 2.199 | 4.022 | **6.153** |
+| RAP MUSIC | 1.993 | 3.836 | 5.982 |
+| **CFM, 3 seeds** | **1.500 ± 0.097** | **2.691 ± 0.179** | **5.542 ± 0.076** |
 
-After excluding CFM's own cross-component failures, symmetrically with the RAP
-MUSIC implementation, stability is 5.914 mm (`n=305`) and 6.149 mm (`n=301`).
-The method-specific RAP subsets give 5.85 and 6.13 mm. Across input branches,
-the filtered smooth decoder's geodesic `dG` cost is +0.286 mm versus the
-reported RAP change +0.73 mm, approximately 2.55-times lower normalized
-sensitivity. The full accuracy–stability frontier and model-by-domain matrix
-are in the canonical results report.
+All three independently trained CFM seeds favour CFM. On the common finite
+mask (`n=290`), the seed-and-case mean geodesic difference CFM−RAP is
+`-1.132 mm`; a hierarchical bootstrap gives `[-1.831,-0.472] mm`, and the
+one-sided paired Wilcoxon test gives `p=0.00219`.
 
-Absolute accuracy is not an algorithm-only comparison: the CFM decoder knows
-the true Gaussian patch family and radii, while RAP MUSIC fits point dipoles;
-fixed/free orientation and noise-window information also differ. A ±30% radius
-ablation degrades CFM hard-decoder geodesic MAE from 3.587 to 4.722–5.122 mm.
+The final same-corpus lead-field perturbation result is more cautious. On the
+four-sided intersection of RAP MUSIC and all three CFM seeds, CFM's Geo cost is
+`0.713 ± 0.146 mm` versus RAP's `0.930 mm`; the point ratio is `1.30`, but the
+interval for RAP−CFM, `[-0.359,0.804] mm`, crosses zero. Delta-X costs are
+effectively equal (`0.271 ± 0.125` versus `0.260 mm`).
+
+Absolute accuracy is still a full-pipeline comparison: CFM knows the Gaussian
+patch family and uses fixed cortical-normal orientation, while RAP MUSIC fits
+point dipoles with free orientation. Replacing the final CFM residual basis by
+point sources degrades Geo to `6.350 ± 0.555 mm`.
 
 ## What this repository also documents
 
@@ -121,12 +113,11 @@ Every run writes `summary.json` with input SHA-256 hashes, git HEAD, and a flag 
 ## Comparison boundary
 
 Code review closed the graph, source-matching, dataset, and metric-definition
-questions. Each method nevertheless excludes its own cross-component failures,
-and no common-intersection mask is available. The pipelines also differ in
-source-shape prior, orientation model, fixed temporal signatures, and RAP's
-empty-window noise estimate. Accordingly, the repository claims lower
-within-method sensitivity to `dG`, not absolute statistical superiority over
-RAP MUSIC.
+questions, and final claims use an explicit common finite mask. The measured
+dominance applies to two complete pipelines on one synthetic subject. The
+pipelines still differ in source-shape prior, orientation model, fixed temporal
+signatures, and RAP's empty-window noise estimate, so it is not a universal
+comparison of algorithm classes.
 
 ## Authors
 

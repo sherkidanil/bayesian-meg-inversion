@@ -139,11 +139,9 @@ cross-component failures, symmetrically with the RAP MUSIC code, gives 5.914
 MUSIC 5.85 and 6.13 mm, but the subsets are method-specific. A common-mask
 comparison is unavailable, so no superiority claim is made.
 
-The filtered geodesic `dG` cost averages +0.286 mm across original and shifted
-branches for the smooth decoder, versus the reported +0.73 mm for RAP MUSIC;
-normalized sensitivity is about 2.55× lower, consistent with the previous
-order-2.4 conclusion. This is an internal difference within each method and is
-not confounded by the absolute comparison conditions below.
+The earlier filtered geodesic `dG` costs, +0.286 mm for CFM and +0.73 mm for
+RAP MUSIC, came from different corpora and cannot define a sensitivity ratio.
+The final same-corpus result is given in §6.
 
 The absolute accuracy comparison has four disclosed asymmetries: the residual
 decoder knows the true Gaussian patch radii and profile while RAP MUSIC fits
@@ -166,3 +164,67 @@ measures mismatch in both directions.
 - **Paired comparisons use paired statistics.** An earlier apparent ranking change dissolved when per-seed differences were examined: the challenger won the aggregate by 0.100 mm while losing two of three seeds. A later reranking, decisive on all three seeds, was accepted.
 - **Provenance travels with results.** Each run records input hashes, git HEAD, and whether the repository changed mid-run.
 - **Stopping rules are part of rigor.** The accuracy--stability frontier is measured, five decoders are enough, three asymmetry hypotheses were rejected, and no further estimator, sweep, or post-hoc explanation is part of this closeout.
+
+## 6. Temporal attention and cortical decoding reverse the matched comparison
+
+The matched RAP MUSIC baseline removes the forward-domain mismatch: its fixed
+simulation matrix is byte-for-byte equal to the persisted server matrix, while
+its free-orientation inverse operator comes from the same forward solution.
+Replacing the old CFM configuration by temporal-attention V1, a cortical
+medoid, and 400 prefix-stable posterior draws changes the result from a nearby
+trade-off to measured dominance.
+
+Across three training seeds, CFM gives `1.500 ± 0.097 mm` Euclidean MAE,
+`2.691 ± 0.179 mm` geodesic MAE, and `5.542 ± 0.076 mm` Delta X', versus RAP
+MUSIC at `1.993`, `3.836`, and `5.982 mm`. On the common finite set (`n=290`),
+the hierarchical seed-and-case interval for CFM−RAP geodesic error is
+`[-1.831,-0.472] mm` and paired `p=0.00219`. All three seeds favour CFM.
+
+**Lesson.** A strong truth-free decoder can reveal a sampler whose posterior
+already covers good solutions, but architecture still matters: temporal
+attention improves single-draw, decoded, oracle, and failure-tail metrics
+together.
+
+## 7. Three negative or corrective results constrain the next step
+
+1. **Signal-subspace vertex features did not converge.** Replacing the raw
+   temporal path by accumulated subspace maps failed across two encoders and
+   three learning rates. This is an optimization failure, not evidence against
+   physics-informed features in general.
+2. **Covariance concatenation V5 worsened every level.** Single-draw, decoded,
+   and oracle Geo all degraded (`11.778`, `5.974`, `2.824 mm`). Together with
+   the first result, this says compressed spatial summaries displace the fixed
+   temporal signatures that distinguish sources in this dataset.
+3. **Residual refinement is locally, not globally, misaligned.** The old
+   `3.295` versus `2.691 mm` comparison mixed S=100 hard argmin with S=400
+   medoid. Controlled two-pass refinement from the final medoid instead improves
+   all three seeds to `2.428 ± 0.173 mm`, while Delta X' changes only
+   `5.542→5.561 mm`. Yet in `25.0–32.5%` of moved finite branches the residual
+   decreases while truth error rises. The criterion has local false directions,
+   but the stronger claim of a globally shifted optimum is unsupported.
+
+The refinement result is exploratory because the S=400 refinement policy was
+not independently selected on dev. It does not replace the locked headline.
+
+## 8. Source-model ablation remains decisive in the final configuration
+
+With V1, medoid, S=400, and dev-only temperatures, replacing Gaussian-patch
+residuals by point-source residuals degrades Geo to `6.350 ± 0.555 mm` over
+three seeds, from `2.691 ± 0.179 mm`. The decoder is therefore strongly
+sensitive to misspecifying extended sources as points. MNE has no standard
+mirror ablation in which RAP MUSIC expects the simulated Gaussian patches, so
+the prior-information asymmetry cannot be removed completely.
+
+## 9. The final dG estimate preserves direction but not significance
+
+The historical mask and RAP cost reproduce exactly (`n=297/292`, `+0.9473156
+mm`). Under the same four-sided rule and the stricter intersection of RAP and
+all final CFM seeds, CFM's geodesic `dG` cost is `0.713 ± 0.146 mm` versus
+RAP's `0.930 mm`, a point ratio of `1.30`. The hierarchical interval for the
+RAP−CFM difference is `[-0.359,0.804] mm`, so the robustness difference is not
+resolved. Delta X' costs are effectively equal: `0.271 ± 0.125` versus
+`0.260 mm`.
+
+The historical perturbation's global Frobenius change is about `6.6%`, so the
+natural `36.8%` mismatch is roughly `5.4x` larger, not two orders of magnitude
+larger.
