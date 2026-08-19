@@ -165,14 +165,14 @@ measures mismatch in both directions.
 - **Provenance travels with results.** Each run records input hashes, git HEAD, and whether the repository changed mid-run.
 - **Stopping rules are part of rigor.** The accuracy--stability frontier is measured, five decoders are enough, three asymmetry hypotheses were rejected, and no further estimator, sweep, or post-hoc explanation is part of this closeout.
 
-## 6. Temporal attention and cortical decoding reverse the matched comparison
+## 6. Temporal attention beats standard point RAP, not the equal-prior baseline
 
 The matched RAP MUSIC baseline removes the forward-domain mismatch: its fixed
 simulation matrix is byte-for-byte equal to the persisted server matrix, while
 its free-orientation inverse operator comes from the same forward solution.
 Replacing the old CFM configuration by temporal-attention V1, a cortical
 medoid, 400 prefix-stable posterior draws, and dev-selected mesh refinement
-changes the result from a nearby trade-off to a clear accuracy advantage.
+produces a clear advantage over standard free-orientation point RAP.
 
 Across three training seeds, CFM gives `1.429 ± 0.205 mm` Euclidean MAE,
 `2.618 ± 0.288 mm` geodesic MAE, and `5.543 ± 0.073 mm` Delta X', versus RAP
@@ -182,10 +182,14 @@ the hierarchical seed-and-case interval for CFM−RAP geodesic error is
 For Delta X', however, Wilcoxon gives `p=0.101`; its numerical improvement is
 not an established second axis of dominance.
 
+This comparison is real but not source-model matched. Section 10 shows that it
+reverses when RAP is given the same Gaussian-patch dictionary.
+
 **Lesson.** A strong truth-free decoder can reveal a sampler whose posterior
-already covers good solutions, but architecture still matters: temporal
-attention improves single-draw, decoded, oracle, and failure-tail metrics
-together.
+already covers good solutions, and temporal attention improves single-draw,
+decoded, oracle, and failure-tail metrics together. Neither fact identifies
+the source of an advantage over a classical method until prior information is
+matched.
 
 ## 7. Three negative or corrective results constrain the next step
 
@@ -217,8 +221,8 @@ replacing Gaussian-patch residuals by point-source residuals degrades Geo to
 `6.350 ± 0.555 mm` over three seeds, from `2.691 ± 0.179 mm`. The decoder is
 therefore strongly
 sensitive to misspecifying extended sources as points. MNE has no standard
-mirror ablation in which RAP MUSIC expects the simulated Gaussian patches, so
-the prior-information asymmetry cannot be removed completely.
+mirror switch for Gaussian patches, but the asymmetry is removed by the
+independently validated scalar RAP implementation in section 10.
 
 ## 9. The final dG estimate preserves direction but not significance
 
@@ -234,22 +238,30 @@ The historical perturbation's global Frobenius change is about `6.6%`, so the
 natural `36.8%` mismatch is roughly `5.4x` larger, not two orders of magnitude
 larger.
 
-## 10. Equalizing the Gaussian source class strengthens the network claim
+## 10. Equalizing the Gaussian source class reverses the accuracy claim
 
-The missing mirror baseline was implemented directly. Three topography
-dictionaries `G_patch=GΦᵀ` are precomputed for the true `(10,8,10) mm` radius
-slots. A three-stage greedy scan evaluates every remaining radius/vertex pair
-under the same 2–25 Hz filtered subspace residual used by the CFM decoder.
-Real-artifact checks reproduce `ProjectedGaussianCache` columns and direct QR
-residuals to numerical precision.
+The first attempt was a three-stage greedy minimization of the raw residual.
+It gave `7.880 mm` finite-only Geo and many failures. That result diagnoses a
+weak optimizer; it is not RAP MUSIC and says nothing decisive about the value
+of network proposals.
 
-The result is not close: finite-only Geo is `7.880 mm`, with `84/700`
-non-finite branches and `39/290` failures on the locked headline mask. On the
-common finite subset (`n=251`), CFM/patch-scan/RAP are
-`2.693/7.762/3.689 mm`; CFM-minus-scan is `-5.068 mm`, hierarchical interval
-`[-6.318,-3.899] mm`, Wilcoxon `p=2.91e-14`.
+The actual mirror baseline implements scalar RAP MUSIC. At each recursive
+stage it maximizes projected signal-subspace correlation while retaining the
+full rank-three signal subspace. Applying the same MNE SSP projector to data
+and dictionary is essential. With a point, fixed-orientation dictionary, the
+implementation matches MNE's ordered predictions on `700/700` branches. The
+same validation measures the orientation effect: fixed-minus-free Geo is
+`+7.416 mm` on `n=277`, interval `[6.479,8.372]`, `p=1.24e-37`.
 
-**Lesson.** Knowledge of the Gaussian source profile is material, but it is not
-sufficient to explain CFM's accuracy. In this controlled greedy comparison,
-the learned posterior proposals contain localization information that a full
-per-stage scan of the same residual criterion does not recover.
+Only then is the point dictionary replaced by three Gaussian-patch dictionaries
+for `(10,8,10) mm`. On the common patch-RAP/CFM mask (`n=288`), patch-RAP is
+`1.118 mm` Geo and final CFM is `2.646 mm`. Patch-RAP minus CFM is `-1.527 mm`,
+hierarchical interval `[-2.143,-0.901]`, one-sided Wilcoxon `p=1.85e-25`; all
+three training seeds lose separately. Patch-RAP also beats standard free-point
+MNE by `-2.583 mm`, interval `[-2.987,-2.204]`.
+
+**Lesson.** The pre-registered outcome is
+`source_shape_explains_cfm_advantage`. Once source-shape knowledge is equalized,
+the classical exhaustive subspace method is substantially more accurate than
+CFM. The network's remaining case is computational amortization, not superior
+localization accuracy on this benchmark.

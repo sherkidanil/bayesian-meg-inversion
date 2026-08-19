@@ -8,8 +8,9 @@ On the matched server-lead-field corpus, the temporal-attention CFM with the
 truth-free residual-weighted cortical medoid, 400 posterior draws, and a
 dev-selected mesh-refinement policy achieves geodesic MAE
 `2.618 ± 0.288 mm` across three independently trained seeds. The pass counts
-selected before held-out was opened are `0`, `0`, and `1`. The matched RAP
-MUSIC reference is `3.836 mm`.
+selected before held-out was opened are `0`, `0`, and `1`. This is more
+accurate than the standard free-orientation, point-dipole MNE RAP MUSIC
+reference (`3.836 mm`), but it is not the final equal-prior comparison.
 
 All three seeds favour CFM. On the intersection of cases with finite geodesic
 metrics for RAP MUSIC and every CFM seed (`n=290`), the seed-and-case mean
@@ -18,13 +19,16 @@ seeds and cases gives a 95% interval of `[-1.905, -0.517] mm`. A paired
 one-sided Wilcoxon test on the per-case CFM error averaged over seeds gives
 `p=0.000385`.
 
-This establishes an accuracy advantage on the matched synthetic benchmark
-under the locked metric and finite-case protocol. Delta X' is numerically
-lower, but its one-sided Wilcoxon test is not significant (`p=0.101` after the
-dev-selected refinement), so the final claim is accuracy and speed—not formal
-Pareto dominance in accuracy and stability. The result does not remove the
-previously documented limitations of comparisons to independently generated
-results or to a differently defined geodesic metric.
+When RAP is given the same Gaussian-patch source dictionary as the CFM
+decoder, it reaches `1.118 mm` geodesic MAE on the common finite mask versus
+`2.646 mm` for CFM. Patch-RAP minus CFM is `-1.527 mm`, with hierarchical 95%
+interval `[-2.143,-0.901] mm` and one-sided Wilcoxon `p=1.85e-25`. The
+pre-registered outcome is therefore **source shape explains the apparent CFM
+accuracy advantage**. The network remains an amortized proposal mechanism and
+may retain a speed trade-off, but it does not beat exhaustive patch-RAP on
+localization accuracy in this benchmark. Delta X' is numerically lower than
+standard point RAP but is not significant (`p=0.101`), so no formal Pareto
+dominance claim remains.
 
 ## S=400 base decoder before mesh refinement
 
@@ -197,33 +201,78 @@ dev-only temperature selection, degrades geodesic MAE to `6.459`, `5.749`, and
 `6.842 mm` across seeds: `6.350 ± 0.555 mm`. Euclidean MAE is
 `3.576 ± 0.274 mm` and Delta X' is `5.990 ± 0.154 mm`.
 
-The ablation therefore remains decisive for the zero-refinement S=400 decoder: the
-residual decoder is strongly sensitive to misspecifying extended Gaussian
-sources as points. This is not a symmetric comparison of prior information,
-because standard MNE RAP MUSIC has no mirror mode that expects the simulated
-Gaussian patches.
+The ablation therefore remains decisive for the zero-refinement S=400 decoder:
+the residual decoder is strongly sensitive to misspecifying extended Gaussian
+sources as points. Standard MNE has no mirror switch for Gaussian patches, but
+the independently validated scalar RAP implementation below now supplies that
+equal-prior comparison.
 
-## Classical Gaussian-patch scan
+## Raw-residual greedy scan: optimizer negative result
 
-The prepublication mirror baseline precomputes three dictionaries
+The earlier prepublication diagnostic precomputes three dictionaries
 `G_patch = G @ Phi.T` of shape `3 × 102 × 4699` for the true radius multiset
 `(10, 8, 10) mm`. Each greedy stage exhaustively scans every remaining
 radius-slot/vertex pair using the same localization `G`, 2–25 Hz filtering,
 Gaussian profile, and subspace residual as the CFM decoder. Each radius slot is
 consumed once and a selected vertex cannot be repeated.
 
-The scan is substantially worse, not tied: finite-only geodesic MAE is
+The raw-residual scan is substantially worse: finite-only geodesic MAE is
 `7.880 mm`, with `84/700` non-finite branches and `39/290` failures on the
 locked headline mask. On the common finite subset (`n=251`), CFM is
 `2.693 mm`, the patch scan `7.762 mm`, and RAP MUSIC `3.689 mm`. The
 seed-and-case CFM-minus-scan difference is `-5.068 mm`, interval
-`[-6.318,-3.899] mm`, Wilcoxon `p=2.91e-14`. Thus, within this controlled
-greedy construction, network proposals contribute information beyond the
-shared Gaussian-patch residual criterion.
+`[-6.318,-3.899] mm`, Wilcoxon `p=2.91e-14`. This measures the weakness of
+greedy minimization of the raw residual. It is not a classical RAP MUSIC
+baseline and cannot establish that network proposals add localization
+information.
 
 Precomputation takes `0.420 s`; the 700-branch scan takes `4.425 s` wall time
 with eight CPU workers (`0.0485 s` accumulated per branch on average). The
 complete run including filtering, metrics, and artifact writes takes `21.9 s`.
+
+## RAP MUSIC with a matched Gaussian-patch dictionary
+
+The equal-prior baseline implements scalar RAP directly. From the top-three
+left singular vectors `E_s` of the filtered sensor data, each stage scores a
+candidate topography `b` after projecting away previously selected
+topographies:
+
+`rho(b) = ||(P_perp E_s)^T(P_perp b)|| / ||P_perp b||`.
+
+Unlike TRAP MUSIC, RAP retains all three signal-subspace vectors at every
+stage. The implementation applies the same rank-99 MNE SSP projector to the
+data and dictionaries. With the point dictionary and fixed orientations, its
+ordered predictions match MNE RAP MUSIC on all `700/700` branches. This
+validation also exposes a large orientation effect: on the shared finite mask
+(`n=277`), fixed-minus-free geodesic MAE is `+7.416 mm`, 95% interval
+`[6.479,8.372] mm`, `p=1.24e-37`.
+
+Replacing only the point dictionary by the three precomputed Gaussian-patch
+dictionaries gives finite-only geodesic MAE `1.346 mm` over all branches. On
+the common patch/CFM mask (`n=288`), the levels are:
+
+| method | geodesic MAE, mm |
+|---|---:|
+| Gaussian-patch RAP MUSIC | **1.118** |
+| final refined CFM, seed average | 2.646 |
+| standard free-orientation point RAP MUSIC | 3.701 |
+
+Patch-RAP minus CFM is `-1.527 mm`; the three seed-specific differences are
+`-1.767`, `-1.525`, and `-1.290 mm`. The hierarchical seed-and-case interval is
+`[-2.143,-0.901] mm`, the direct paired bootstrap interval is
+`[-2.043,-0.980] mm`, and one-sided Wilcoxon gives `p=1.85e-25`. Patch-RAP also
+beats free point RAP by `-2.583 mm`, interval `[-2.987,-2.204] mm`, two-sided
+`p=6.28e-34`.
+
+Under the outcome rule frozen before inspecting patch-RAP, the result is
+classified as `source_shape_explains_cfm_advantage` because patch-RAP is below
+`2.6 mm`. Equalizing the source model reverses the accuracy comparison: the
+classical exhaustive subspace scan is more accurate than the network pipeline.
+The vectorized patch scan averages `0.0879 s` of CPU time per branch and
+`11.36 s` wall time for 700 branches with eight workers, excluding the shared
+`16.31 s` filtering step. Therefore the previously reported CFM speedup over
+MNE must not be transferred to this custom equal-prior implementation without
+a dedicated end-to-end timing protocol.
 
 ## Metric and reporting conventions
 
@@ -255,6 +304,10 @@ Prepublication artifact root:
 
 `/mnt/storage/data/tester/meg_prepublication_20260819/`
 
+Matched patch-RAP artifact root:
+
+`/mnt/storage/data/tester/meg_patch_rapmusic_20260819/`
+
 Key artifacts:
 
 - `seed_aggregate/summary.json`: V0/V1 seed audit at 100 draws;
@@ -277,6 +330,12 @@ Key artifacts:
   metrics, and timings;
 - `refinement_seed{303,304,305}/`: dev-selected pass counts and held-out results;
 - `aggregate/summary.json`: final common-mask comparisons.
+- `final_run/summary.json`: validated point- and patch-RAP branch metrics;
+- `mne_fixed_validation/summary.json`: independent MNE fixed-orientation run;
+- `aggregate/summary.json` under the matched patch-RAP root: paired patch/CFM,
+  point/MNE, and fixed/free-orientation tests;
+- `aggregate/masks_and_errors.npz`: exact masks and per-case errors;
+- `sensor_projector.npz`: persisted rank-99 MNE SSP projector.
 
-The final code is on branch `codex/prepublication`. No additional architecture
-blocks, learning-rate sweeps, or decoder variants are required for this result.
+The final code is on branch `codex/patch-rapmusic`. No additional computational
+experiments are required; the next phase is manuscript consolidation.
