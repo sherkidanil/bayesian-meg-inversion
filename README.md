@@ -4,10 +4,10 @@ Amortised posterior inference for the MEG inverse problem: a conditional flow-ma
 
 Companion code to ongoing work at Skoltech / HSE / AIRI, following [Bayesian Inverse Problems Meet Flow Matching](https://arxiv.org/abs/2503.01375) (arXiv:2503.01375).
 
-> **Status: scientific closeout complete.** The frozen numerical source of
+> **Status: prepublication validation complete.** The frozen numerical source of
 > truth is [`reports/RESULTS.md`](reports/RESULTS.md). The 2–25 Hz recomputation
-> and comparison boundaries are documented in
-> [`reports/2026-08-15-filtered-residual-recompute-report.md`](reports/2026-08-15-filtered-residual-recompute-report.md).
+> and final comparison boundaries are documented in
+> [`reports/METHOD.md`](reports/METHOD.md).
 
 ---
 
@@ -41,33 +41,48 @@ The CFM sampler still receives unfiltered sensor data.
 Quadratic Gibbs weights, $w_s \propto \exp(-r_s^2 / 2\tau^2)$, are converted
 to a cortical geodesic medoid for every source slot. This keeps the estimate on
 the cortical surface and avoids averaging between opposite banks of a sulcus.
-Each training seed freezes its own $\tau$ on dev before held-out is opened.
+Each training seed freezes its own $\tau$ and optional mesh-refinement pass
+count on dev before held-out is opened.
 
 ## Results
 
 On the matched server-lead-field benchmark, temporal-attention CFM with the
-cortical medoid and `S=400` dominates the matched RAP MUSIC pipeline:
+cortical medoid, `S=400`, and dev-selected mesh refinement is more accurate
+than the matched RAP MUSIC pipeline:
 
 | Method | MAE euc | MAE geo | $\Delta X'$ euc |
 |---|---:|---:|---:|
 | RAP MUSIC | 1.993 | 3.836 | 5.982 |
-| **CFM, 3 seeds** | **1.500 ± 0.097** | **2.691 ± 0.179** | **5.542 ± 0.076** |
+| **CFM, 3 seeds** | **1.429 ± 0.205** | **2.618 ± 0.288** | 5.543 ± 0.073 |
 
-All three independently trained CFM seeds favour CFM. On the common finite
-mask (`n=290`), the seed-and-case mean geodesic difference CFM−RAP is
-`-1.132 mm`; a hierarchical bootstrap gives `[-1.831,-0.472] mm`, and the
-one-sided paired Wilcoxon test gives `p=0.00219`.
+All three independently trained CFM seeds favour CFM in geodesic accuracy. On
+the common finite mask (`n=290`), the seed-and-case mean geodesic difference
+CFM−RAP is `-1.202 mm`; a hierarchical bootstrap gives
+`[-1.905,-0.517] mm`, and the one-sided paired Wilcoxon test gives
+`p=0.000385`. Delta X' is numerically lower by `0.432 mm`, but its one-sided
+Wilcoxon result is not significant (`p=0.101`), so the final claim is accuracy
+and speed rather than three-axis Pareto dominance.
 
-The final same-corpus lead-field perturbation result is more cautious. On the
+A mirror classical baseline receives the same lead field, 2–25 Hz filter,
+Gaussian patch family, and true radius multiset. It precomputes three
+`G_patch = G Phi^T` dictionaries and exhaustively scans every remaining
+radius/vertex pair at each greedy step. Its finite-only geodesic MAE is
+`7.880 mm`; on the locked common subset (`n=251`), CFM and the patch scan give
+`2.693` and `7.762 mm` (`p=2.91e-14`). Thus the accuracy gain is not explained
+by access to the Gaussian source class alone.
+
+The zero-refinement `S=400` same-corpus lead-field perturbation result is more
+cautious. On the
 four-sided intersection of RAP MUSIC and all three CFM seeds, CFM's Geo cost is
 `0.713 ± 0.146 mm` versus RAP's `0.930 mm`; the point ratio is `1.30`, but the
 interval for RAP−CFM, `[-0.359,0.804] mm`, crosses zero. Delta-X costs are
 effectively equal (`0.271 ± 0.125` versus `0.260 mm`).
 
-Absolute accuracy is still a full-pipeline comparison: CFM knows the Gaussian
-patch family and uses fixed cortical-normal orientation, while RAP MUSIC fits
-point dipoles with free orientation. Replacing the final CFM residual basis by
-point sources degrades Geo to `6.350 ± 0.555 mm`.
+Absolute accuracy is still a full-pipeline comparison: CFM uses fixed
+cortical-normal orientation, while RAP MUSIC fits point dipoles with free
+orientation. Replacing the base CFM residual basis by point sources degrades
+Geo to `6.350 ± 0.555 mm`; the matched Gaussian-patch scan above controls the
+source-family objection in the opposite direction.
 
 ## What this repository also documents
 

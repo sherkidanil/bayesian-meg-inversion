@@ -171,14 +171,16 @@ The matched RAP MUSIC baseline removes the forward-domain mismatch: its fixed
 simulation matrix is byte-for-byte equal to the persisted server matrix, while
 its free-orientation inverse operator comes from the same forward solution.
 Replacing the old CFM configuration by temporal-attention V1, a cortical
-medoid, and 400 prefix-stable posterior draws changes the result from a nearby
-trade-off to measured dominance.
+medoid, 400 prefix-stable posterior draws, and dev-selected mesh refinement
+changes the result from a nearby trade-off to a clear accuracy advantage.
 
-Across three training seeds, CFM gives `1.500 ± 0.097 mm` Euclidean MAE,
-`2.691 ± 0.179 mm` geodesic MAE, and `5.542 ± 0.076 mm` Delta X', versus RAP
+Across three training seeds, CFM gives `1.429 ± 0.205 mm` Euclidean MAE,
+`2.618 ± 0.288 mm` geodesic MAE, and `5.543 ± 0.073 mm` Delta X', versus RAP
 MUSIC at `1.993`, `3.836`, and `5.982 mm`. On the common finite set (`n=290`),
 the hierarchical seed-and-case interval for CFM−RAP geodesic error is
-`[-1.831,-0.472] mm` and paired `p=0.00219`. All three seeds favour CFM.
+`[-1.905,-0.517] mm` and paired `p=0.000385`. All three seeds favour CFM.
+For Delta X', however, Wilcoxon gives `p=0.101`; its numerical improvement is
+not an established second axis of dominance.
 
 **Lesson.** A strong truth-free decoder can reveal a sampler whose posterior
 already covers good solutions, but architecture still matters: temporal
@@ -203,14 +205,17 @@ together.
    decreases while truth error rises. The criterion has local false directions,
    but the stronger claim of a globally shifted optimum is unsupported.
 
-The refinement result is exploratory because the S=400 refinement policy was
-not independently selected on dev. It does not replace the locked headline.
+The fixed two-pass result remains exploratory. An independently frozen dev rule
+selects `0/0/1` passes for seeds `303/304/305` and yields the final
+`2.618 ± 0.288 mm` headline. The conservative rule rejects the larger
+two-pass gain for two seeds because it worsens Delta X'.
 
-## 8. Source-model ablation remains decisive in the final configuration
+## 8. Source-model ablation remains decisive in the S=400 base decoder
 
-With V1, medoid, S=400, and dev-only temperatures, replacing Gaussian-patch
-residuals by point-source residuals degrades Geo to `6.350 ± 0.555 mm` over
-three seeds, from `2.691 ± 0.179 mm`. The decoder is therefore strongly
+With V1, medoid, S=400, dev-only temperatures, and no optional refinement,
+replacing Gaussian-patch residuals by point-source residuals degrades Geo to
+`6.350 ± 0.555 mm` over three seeds, from `2.691 ± 0.179 mm`. The decoder is
+therefore strongly
 sensitive to misspecifying extended sources as points. MNE has no standard
 mirror ablation in which RAP MUSIC expects the simulated Gaussian patches, so
 the prior-information asymmetry cannot be removed completely.
@@ -228,3 +233,23 @@ resolved. Delta X' costs are effectively equal: `0.271 ± 0.125` versus
 The historical perturbation's global Frobenius change is about `6.6%`, so the
 natural `36.8%` mismatch is roughly `5.4x` larger, not two orders of magnitude
 larger.
+
+## 10. Equalizing the Gaussian source class strengthens the network claim
+
+The missing mirror baseline was implemented directly. Three topography
+dictionaries `G_patch=GΦᵀ` are precomputed for the true `(10,8,10) mm` radius
+slots. A three-stage greedy scan evaluates every remaining radius/vertex pair
+under the same 2–25 Hz filtered subspace residual used by the CFM decoder.
+Real-artifact checks reproduce `ProjectedGaussianCache` columns and direct QR
+residuals to numerical precision.
+
+The result is not close: finite-only Geo is `7.880 mm`, with `84/700`
+non-finite branches and `39/290` failures on the locked headline mask. On the
+common finite subset (`n=251`), CFM/patch-scan/RAP are
+`2.693/7.762/3.689 mm`; CFM-minus-scan is `-5.068 mm`, hierarchical interval
+`[-6.318,-3.899] mm`, Wilcoxon `p=2.91e-14`.
+
+**Lesson.** Knowledge of the Gaussian source profile is material, but it is not
+sufficient to explain CFM's accuracy. In this controlled greedy comparison,
+the learned posterior proposals contain localization information that a full
+per-stage scan of the same residual criterion does not recover.

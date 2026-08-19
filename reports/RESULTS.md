@@ -5,23 +5,28 @@ Date: 2026-08-19
 ## Final result
 
 On the matched server-lead-field corpus, the temporal-attention CFM with the
-truth-free residual-weighted cortical medoid and 400 posterior draws achieves
-geodesic MAE `2.691 ± 0.179 mm` across three independently trained seeds. The
-matched RAP MUSIC reference is `3.836 mm`.
+truth-free residual-weighted cortical medoid, 400 posterior draws, and a
+dev-selected mesh-refinement policy achieves geodesic MAE
+`2.618 ± 0.288 mm` across three independently trained seeds. The pass counts
+selected before held-out was opened are `0`, `0`, and `1`. The matched RAP
+MUSIC reference is `3.836 mm`.
 
 All three seeds favour CFM. On the intersection of cases with finite geodesic
 metrics for RAP MUSIC and every CFM seed (`n=290`), the seed-and-case mean
-difference is `-1.132 mm`. A two-level bootstrap that resamples both training
-seeds and cases gives a 95% interval of `[-1.831, -0.472] mm`. A paired
+difference is `-1.202 mm`. A two-level bootstrap that resamples both training
+seeds and cases gives a 95% interval of `[-1.905, -0.517] mm`. A paired
 one-sided Wilcoxon test on the per-case CFM error averaged over seeds gives
-`p=0.00219`.
+`p=0.000385`.
 
-This establishes an advantage on the matched synthetic benchmark under the
-locked metric and finite-case protocol. It does not remove the previously
-documented limitations of comparisons to Anna's independently generated
+This establishes an accuracy advantage on the matched synthetic benchmark
+under the locked metric and finite-case protocol. Delta X' is numerically
+lower, but its one-sided Wilcoxon test is not significant (`p=0.101` after the
+dev-selected refinement), so the final claim is accuracy and speed—not formal
+Pareto dominance in accuracy and stability. The result does not remove the
+previously documented limitations of comparisons to independently generated
 results or to a differently defined geodesic metric.
 
-## Final S=400 results
+## S=400 base decoder before mesh refinement
 
 Each seed freezes its own quadratic residual temperature on dev before
 held-out is opened. The draw bank is prefix-stable: the first 100 and 200 draws
@@ -45,11 +50,36 @@ Per-seed paired comparisons to RAP MUSIC:
 The common-mask seed-specific mean differences are `-0.963`, `-1.217`, and
 `-1.214 mm`; hence the aggregate result is not created by one favourable seed.
 
-## Final sensitivity to lead-field perturbation
+## Prepublication tests and final estimator
 
-The CFM side was recomputed with the final V1 architecture, cortical medoid,
-`S=400`, and each seed's own dev-frozen temperature. RAP MUSIC inference was
+The number of mesh passes was selected separately for each seed on dev by the
+preregistered rule: minimize Delta X' subject to Euclidean MAE no greater than
+`1.10 × MAE(0 passes)`, with ties resolved by lower MAE and then fewer passes.
+Held-out remained unopened until the choice was persisted.
+
+| training seed | selected passes | final Euc, mm | final Geo, mm | final Delta X' Euc, mm |
+|---:|---:|---:|---:|---:|
+| 303 | 0 | 1.607 | 2.883 | 5.601 |
+| 304 | 0 | 1.476 | 2.659 | 5.568 |
+| 305 | 1 | 1.205 | 2.312 | 5.461 |
+| mean ± SD | — | **1.429 ± 0.205** | **2.618 ± 0.288** | **5.543 ± 0.073** |
+
+On the locked `n=290` mask, final CFM and RAP MUSIC geodesic levels are
+`2.649` and `3.851 mm`; the paired CFM-minus-RAP result is `-1.202 mm`,
+hierarchical 95% interval `[-1.905,-0.517] mm`, one-sided Wilcoxon
+`p=0.000385`. For Delta X', the corresponding levels are `5.577` and
+`6.009 mm`; the mean difference is `-0.432 mm` and the hierarchical interval is
+`[-0.814,-0.080] mm`, but Wilcoxon gives `p=0.101`. Therefore the numerical
+stability improvement is reported descriptively, not as an established
+advantage.
+
+## Lead-field sensitivity of the zero-refinement S=400 decoder
+
+The CFM side was recomputed with V1, the cortical medoid, `S=400`, zero mesh
+refinement, and each seed's own dev-frozen temperature. RAP MUSIC inference was
 not rerun: the persisted `dG=0` and `dG!=0` prediction artifacts are reused.
+This section predates the later `0/0/1` pass selection and is not used as a
+headline claim of robustness.
 The historical four-sided convention was kept—both branches must be finite for
 both methods in both perturbation states. Reproducing the old CFM configuration
 recovers the published mask counts (`297` MAE pairs, `292` Delta X' pairs) and
@@ -118,8 +148,9 @@ the residual decreases in 100%, while true geodesic error increases in
 `32.5%`, `25.0%`, and `29.6%` across the three seeds. Thus the data support
 local residual/truth mismatch, not the stronger claim that the residual
 minimum is globally shifted or that the oracle gap is unreachable by local
-refinement. Because this diagnostic was not selected afresh on S=400 dev, it
-is reported as exploratory and does not replace the locked `2.691 mm` result.
+refinement. The confirmatory dev selection chooses `0/0/1` passes rather than
+two passes for every seed. It replaces the headline by `2.618 ± 0.288 mm`; the
+fixed two-pass `2.428 mm` result remains exploratory.
 
 ### Signal-subspace denoising
 
@@ -166,11 +197,33 @@ dev-only temperature selection, degrades geodesic MAE to `6.459`, `5.749`, and
 `6.842 mm` across seeds: `6.350 ± 0.555 mm`. Euclidean MAE is
 `3.576 ± 0.274 mm` and Delta X' is `5.990 ± 0.154 mm`.
 
-The ablation therefore remains decisive under the final configuration: the
+The ablation therefore remains decisive for the zero-refinement S=400 decoder: the
 residual decoder is strongly sensitive to misspecifying extended Gaussian
 sources as points. This is not a symmetric comparison of prior information,
 because standard MNE RAP MUSIC has no mirror mode that expects the simulated
 Gaussian patches.
+
+## Classical Gaussian-patch scan
+
+The prepublication mirror baseline precomputes three dictionaries
+`G_patch = G @ Phi.T` of shape `3 × 102 × 4699` for the true radius multiset
+`(10, 8, 10) mm`. Each greedy stage exhaustively scans every remaining
+radius-slot/vertex pair using the same localization `G`, 2–25 Hz filtering,
+Gaussian profile, and subspace residual as the CFM decoder. Each radius slot is
+consumed once and a selected vertex cannot be repeated.
+
+The scan is substantially worse, not tied: finite-only geodesic MAE is
+`7.880 mm`, with `84/700` non-finite branches and `39/290` failures on the
+locked headline mask. On the common finite subset (`n=251`), CFM is
+`2.693 mm`, the patch scan `7.762 mm`, and RAP MUSIC `3.689 mm`. The
+seed-and-case CFM-minus-scan difference is `-5.068 mm`, interval
+`[-6.318,-3.899] mm`, Wilcoxon `p=2.91e-14`. Thus, within this controlled
+greedy construction, network proposals contribute information beyond the
+shared Gaussian-patch residual criterion.
+
+Precomputation takes `0.420 s`; the 700-branch scan takes `4.425 s` wall time
+with eight CPU workers (`0.0485 s` accumulated per branch on average). The
+complete run including filtering, metrics, and artifact writes takes `21.9 s`.
 
 ## Metric and reporting conventions
 
@@ -198,6 +251,10 @@ Finalization artifact root:
 
 `/mnt/storage/data/tester/meg_finalize_v1_20260819/`
 
+Prepublication artifact root:
+
+`/mnt/storage/data/tester/meg_prepublication_20260819/`
+
 Key artifacts:
 
 - `seed_aggregate/summary.json`: V0/V1 seed audit at 100 draws;
@@ -214,7 +271,12 @@ Key artifacts:
   hierarchical intervals;
 - `point_ablation_seed{303,304,305}/`: final point-source ablation;
 - `refinement_shift_seed{303,304,305}/`: controlled S=400 refinement
-  diagnostics.
+  diagnostics;
+- `deltax_test/summary.json`: locked-mask Delta X' test;
+- `gaussian_patch_baseline/`: three precomputed patch dictionaries, predictions,
+  metrics, and timings;
+- `refinement_seed{303,304,305}/`: dev-selected pass counts and held-out results;
+- `aggregate/summary.json`: final common-mask comparisons.
 
-The final code is on branch `codex/finalize-v1`. No additional architecture
+The final code is on branch `codex/prepublication`. No additional architecture
 blocks, learning-rate sweeps, or decoder variants are required for this result.
