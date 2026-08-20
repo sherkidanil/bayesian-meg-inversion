@@ -12,10 +12,6 @@ The within-dataset truth-only calibration classifies fixed test as `rebuilt_like
 - Paired ΔX′ is less contaminated because both members of a pair share the same mismatch. It is not assumed invariant.
 - Therefore the stability conclusion remains usable; the absolute-accuracy conclusion is suspended pending the in-domain control.
 
-## Collaboration
-
-The message for Anna has been updated with Task A and paired-stability results: [anna-leadfield-domain-shift-message-draft.md](anna-leadfield-domain-shift-message-draft.md). It was not sent because neither the in-app Gmail session nor the system Mail application has an authenticated sending account. No login credentials were entered.
-
 ## Next computations
 
 1. A matched 315-pair server-`G` dataset and paired domain-shift cost measurement.
