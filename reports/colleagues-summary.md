@@ -5,10 +5,27 @@
 
 ## Главное
 
+Source-model specification dominates method choice by an order of magnitude: changing
+the classical dictionary from point topographies to matched Gaussian patches moves
+geodesic MAE from 11.25 to 1.118 mm, whereas the CFM-versus-classical differences
+are within 1.5 mm. With correct radii patch-RAP is best (1.125 versus 2.716 mm on
+the strict misspecification mask); under 0.7× radii CFM is better (5.845 versus
+7.135 mm), and under 1.3× radii patch-RAP is again better (3.018 versus 4.985 mm).
+Although CFM degrades proportionally less at both perturbations, absolute
+degradation reverses at 1.3× (+2.269 mm for CFM versus +1.893 mm for patch-RAP),
+and equal weighting of nominal, 0.7×, and 1.3× regimes gives 3.759 mm for
+patch-RAP versus 4.515 mm for CFM. Thus the learned prior is proportionally softer
+under radius misspecification, but not enough to reverse the overall ranking:
+source-model specification matters more than algorithm selection, and patch-RAP
+remains the practical choice under this three-regime model.
+
 На согласованном server-G benchmark temporal-attention CFM точнее стандартного
 free-orientation point-RAP MUSIC, но проигрывает RAP MUSIC при уравненном
 Gaussian-patch словаре. Поэтому прежнее утверждение о преимуществе сети по
-точности снимается: его объясняет знание формы источника.
+точности при верной модели снимается: его объясняет знание формы источника.
+Финальная симметричная абляция `±30%` показывает более узкий вывод: CFM
+мягче деградирует в процентах, но patch-RAP остаётся лучше в ожидании по трём
+явно заданным режимам.
 
 | Метод | MAE Euc, мм | MAE Geo, мм | ΔX′ Euc, мм |
 |---|---:|---:|---:|
@@ -78,6 +95,39 @@ V1/medoid/S=400 конфигурации до refinement ухудшает Geo д
 собственная валидированная RAP-реализация теперь закрывает зеркальную
 абляцию.
 
+## Неизвестные радиусы: симметричная абляция `±30%`
+
+Оба метода получают одинаково неверные радиусы: `0.7×` или `1.3×` от
+истинных `(10,8,10) мм`. Patch-RAP перестраивает словарь. CFM не
+переобучается: используются те же три V1-модели, S=400 draw banks и nominal-dev
+`τ`; меняются только профили `Φ` в residual-декодере. Строгая маска пересекает
+nominal и оба возмущения у patch-RAP и всех CFM-сидов (`n=274`).
+
+| радиусы | patch-RAP Geo | Δ patch, мм | Δ patch, % | CFM Geo | Δ CFM, мм | Δ CFM, % | точнее |
+|---|---:|---:|---:|---:|---:|---:|---|
+| nominal | 1.125 | — | — | 2.716 | — | — | patch-RAP |
+| `0.7×` | 7.135 | +6.010 | +533.9% | 5.845 | +3.129 | +115.2% | **CFM** |
+| `1.3×` | 3.018 | +1.893 | +168.1% | 4.985 | +2.269 | +83.6% | patch-RAP |
+
+Разность относительной деградации patch−CFM равна `+418.7` п.п. при `0.7×`
+(`95% ДИ [218.3,859.5]`, `p=2.32e-37`) и `+84.6` п.п. при `1.3×`
+(`[10.2,241.8]`, `p=1.35e-6`). Все три сида согласованы по направлению.
+Заранее замороженный исход на относительной шкале —
+`learned_prior_more_robust`.
+
+При `1.3×` шкалы дают противоположный ответ: в процентах меньше теряет CFM, а
+в миллиметрах — patch-RAP (`1.893 < 2.269`). Причина — разные базы
+`1.125/2.716` мм. CFM точнее только в режиме `0.7×`, где оба метода уже
+сильно испорчены.
+
+При равных весах трёх режимов ожидание равно `3.759` мм для patch-RAP и
+`4.515` мм для CFM. Практический выбор в этой модели неопределённости —
+patch-RAP. Обученный prior пропорционально деградирует мягче, но этого не
+хватает для смены общего ранжирования.
+
+Важно: прежние `5.122/4.722 мм` — несопоставимый один сид, S=100 hard argmin,
+Anna-domain; `6.350 ± 0.555 мм` — точечная абляция `R→0`, не `±30%`.
+
 ## Уточнение по сетке: поправка к прежнему выводу
 
 Сравнение `3.295` и `2.691 мм` было неконтролируемым: первое число относится к
@@ -103,9 +153,9 @@ CPU-времени на ветвь (`11.36 с` wall на 700 ветвей при
 реализацией не установлено.
 
 Ограничения: один субъект MNE sample, симуляции, фиксированное `K=3`, постоянные
-временные сигнатуры источников, симуляционно известные радиусы у обоих методов,
-разные ориентационные модели в стандартном point-RAP сравнении и явные маски
-межполушарных провалов.
+временные сигнатуры источников, известный гауссов профиль (даже когда радиусы
+возмущаются), разные ориентационные модели в стандартном point-RAP сравнении и
+явные маски межполушарных провалов.
 
 Рабочий заголовок, окончательный выбор за Даниилом:
 

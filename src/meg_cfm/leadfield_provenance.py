@@ -19,7 +19,7 @@ from typing import Any
 import numpy as np
 from scipy.linalg import subspace_angles
 
-from residual_rescoring import (
+from .residual_rescoring import (
     ProjectedGaussianCache,
     orthonormal_column_basis,
     subspace_residual,

@@ -113,5 +113,6 @@ def test_summarize_distribution_ignores_nonfinite_values_and_reports_tail():
         "std": 1.0,
         "p25": 1.5,
         "p75": 2.5,
+        "p90": 2.8,
         "max": 3.0,
     }

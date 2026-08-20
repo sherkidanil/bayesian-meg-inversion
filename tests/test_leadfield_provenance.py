@@ -7,7 +7,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from leadfield_provenance import (
+from meg_cfm.leadfield_provenance import (
     assert_matching_geometry,
     capture_environment,
     column_direction_diagnostics,

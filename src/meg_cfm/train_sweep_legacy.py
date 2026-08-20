@@ -28,7 +28,7 @@ import jax.numpy as jnp
 import equinox as eqx
 import optax
 
-from metrics import (
+from .metrics import (
     build_knn_geodesic,
     build_graph_from_edges,
     project_coords_to_vertices,

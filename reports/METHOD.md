@@ -1,5 +1,19 @@
 # Восстановление источников МЭГ через Conditional Flow Matching
 
+Source-model specification dominates method choice by an order of magnitude: changing
+the classical dictionary from point topographies to matched Gaussian patches moves
+geodesic MAE from 11.25 to 1.118 mm, whereas the CFM-versus-classical differences
+are within 1.5 mm. With correct radii patch-RAP is best (1.125 versus 2.716 mm on
+the strict misspecification mask); under 0.7× radii CFM is better (5.845 versus
+7.135 mm), and under 1.3× radii patch-RAP is again better (3.018 versus 4.985 mm).
+Although CFM degrades proportionally less at both perturbations, absolute
+degradation reverses at 1.3× (+2.269 mm for CFM versus +1.893 mm for patch-RAP),
+and equal weighting of nominal, 0.7×, and 1.3× regimes gives 3.759 mm for
+patch-RAP versus 4.515 mm for CFM. Thus the learned prior is proportionally softer
+under radius misspecification, but not enough to reverse the overall ranking:
+source-model specification matters more than algorithm selection, and patch-RAP
+remains the practical choice under this three-regime model.
+
 Единый документ: постановка, метод, декодер, метрики, результаты и то, что было сделано неправильно по дороге. Самодостаточен — предварительных знаний о проекте не требует.
 
 ---
@@ -311,16 +325,45 @@ MAE, `n=282` для `ΔX'`).
 dev-отбора `0/0/1` проходов этот раздел не пересчитывался и не входит в
 headline-преимущество.
 
-**Чувствительность к спецификации пятна.** На `dG=0` original-входах hard decoder с
-истинными радиусами даёт `2.003/3.587` мм Euc/Geo. При `R×0.7` ошибка становится
-`2.928/5.122`, при `R×1.3` — `2.638/4.722`. В пределе точечной модели базовая
-V1/medoid/S=400 конфигурация до optional refinement даёт `6.459`, `5.749`,
-`6.842` мм Geo по сидам (`6.350 ± 0.555`) вместо `2.691 ± 0.179` мм с
-гауссовым пятном. Это
-чувствительность к неверно заданному классу источника, а не только выигрыш от
-знания формы.
-Штатного переключателя MNE на протяжённые источники нет; зеркальная абляция
-закрывается валидированной собственной RAP-реализацией ниже.
+**Чувствительность к спецификации пятна.** Число `6.350 ± 0.555` мм относится
+к предельной точечной абляции `R→0`, а не к `±30%`: базовая
+V1/medoid/S=400 конфигурация до optional refinement даёт по сидам `6.459`,
+`5.749`, `6.842` мм Geo вместо `2.691 ± 0.179` мм с гауссовым пятном.
+Исторические `5.122/4.722` мм при `R×0.7/R×1.3` были получены одним сидом,
+S=100 hard argmin, на Anna-G/Anna-domain корпусе и не сопоставимы с финальной
+трёхсидовой конфигурацией.
+
+Финальный симметричный тест перестраивает словари patch-RAP с теми же
+масштабами `0.7/1.3`, а в CFM меняет только `R` внутри аналитического
+residual-декодера. Сеть, posterior draws (`S=400`) и замороженная на nominal-dev
+`τ` каждого сида не меняются. На строгой общей маске всех методов, масштабов и
+сидов (`n=274`) получены:
+
+| Радиусы | patch-RAP Geo | Δ, мм | Δ, % | CFM Geo | Δ, мм | Δ, % | Точнее |
+|---|---:|---:|---:|---:|---:|---:|---|
+| nominal | 1.125 | — | — | 2.716 | — | — | patch-RAP |
+| `0.7×` | 7.135 | +6.010 | +533.9% | 5.845 | +3.129 | +115.2% | **CFM** |
+| `1.3×` | 3.018 | +1.893 | +168.1% | 4.985 | +2.269 | +83.6% | patch-RAP |
+
+Разность относительных деградаций patch−CFM равна
+`+418.7` п.п. (`[218.3,859.5]`, `p=2.32·10^{-37}`) при `0.7×` и `+84.6`
+п.п. (`[10.2,241.8]`, `p=1.35·10^{-6}`) при `1.3×`.
+
+По правилу, зафиксированному до просмотра чисел, исход —
+`learned_prior_more_robust` на заранее выбранной относительной шкале. Однако
+при `1.3×` ответ меняется на абсолютной шкале: CFM теряет `2.269` мм, а
+patch-RAP `1.893` мм. Причина — разные nominal-базы `2.716` и `1.125` мм.
+CFM точнее только в одном из трёх режимов, причём в режиме сильной деградации
+`0.7×`.
+
+При равных весах режимов ожидаемая Geo равна
+`(1.125+7.135+3.018)/3=3.759` мм для patch-RAP и
+`(2.716+5.845+4.985)/3=4.515` мм для CFM. Поэтому обученный prior
+пропорционально деградирует мягче, но этого недостаточно, чтобы перевернуть
+ранжирование: в указанной модели неопределённости практический выбор остаётся
+за patch-RAP. Штатного переключателя MNE на протяжённые источники нет;
+симметричная абляция обеспечена собственной валидированной RAP-реализацией
+ниже.
 
 **Локальное уточнение.** Сравнение прежних `3.295` мм (S=100 hard argmin) с
 `2.691` мм (S=400 medoid, три сида) было конфаундировано. Фиксированные два
@@ -399,8 +442,18 @@ MUSIC становится существенно точнее CFM (`1.118` пр
 против стандартного RAP численно ниже, но односторонний тест не достигает
 значимости, так что Парето-доминирование также не присваивается.
 
-Оговорки сохраняются: сравнение с patch-RAP использует симуляционно известные
-радиусы обоим методам; стандартный MNE RAP использует свободную ориентацию,
+В симметричном тесте `±30%` относительная деградация CFM значимо меньше
+patch-RAP при обоих знаках возмущения, но абсолютная деградация при `1.3×`
+меньше уже у patch-RAP. При равных весах трёх режимов patch-RAP также точнее в
+ожидании (`3.759` против `4.515` мм). Поэтому главный вывод не состоит в
+превосходстве одного алгоритма: смена point-словаря на правильный patch-словарь
+двигает ошибку с `11.25` до `1.118` мм, на порядок сильнее межметодной разницы.
+CFM пропорционально мягче реагирует на неверные радиусы, но практическое
+ранжирование это не переворачивает.
+
+Оговорки сохраняются: nominal-сравнение с patch-RAP использует симуляционно
+известные радиусы обоим методам; misspecification-тест меняет только радиусы,
+но не профиль Гаусса или число источников; стандартный MNE RAP использует свободную ориентацию,
 тогда как patch-RAP и симулятор — фиксированную; геодезические провалы требуют
 явной общей маски; всё измерено на симуляциях одного субъекта при фиксированном
 `K=3`. Установленный результат — не превосходство CFM по точности. CFM остаётся
@@ -464,6 +517,12 @@ MUSIC становится существенно точнее CFM (`1.118` пр
 2. **Накопление ошибки в последовательной схеме.** RAP MUSIC выделяет источники по одному, вычитая найденное; ошибка в `G` портит первый шаг и переносится дальше. У нас все `K` оцениваются совместно.
 3. **Регуляризация априорным распределением.** `π_ψ(θ|Y)` сосредоточено на конфигурациях из симуляций, что ограничивает, насколько далеко ошибка в `G` уведёт оценку.
 
+Финальная абляция радиусов даёт прямое свидетельство в пользу третьего
+механизма именно для ошибки формы источника: при одинаково неверном `R`
+относительная деградация CFM меньше patch-RAP при обоих знаках `±30%`. Однако
+она не объясняет наблюдавшуюся чувствительность к `dG`, где меняется оператор,
+а не профиль пятна; для `dG` пункты (1)--(3) остаются неразделёнными.
+
 Различаются прямым экспериментом: обучить модель с рандомизацией `G` при генерации и сравнить `ρ`. Не изменится — работает (1) или (2); заметно упадёт — доминирует (3), и рандомизация становится рецептом.
 
 ## 20. Прочее
@@ -517,3 +576,16 @@ RAP MUSIC, and all three CFM seeds.
 The `dG` experiment replays the exact clean signals, noise arrays, and shift
 construction while changing only the simulation forward matrix. Forward
 construction time is recorded separately from per-input inverse runtime.
+
+For source-radius misspecification, the perturbations are frozen at exactly
+`0.7×` and `1.3×`. Patch-RAP rebuilds all three Gaussian dictionaries from the
+perturbed radii. CFM reuses the nominal posterior banks and each seed's
+nominal-dev temperature; only the Gaussian profiles used by the residual
+decoder are changed. No network is retrained and no temperature is retuned.
+The reporting mask intersects the locked headline set with finite geodesic
+pairs for every method, scale, and training seed. Relative degradation is the
+change in the aggregate masked mean divided by that method's nominal masked
+mean. CFM uncertainty resamples both training seeds and cases; patch-RAP
+uncertainty resamples cases. The between-method contrast uses a hierarchical
+bootstrap and paired one-sided Wilcoxon test. The directional outcome rule was
+persisted before the real artifacts were opened.

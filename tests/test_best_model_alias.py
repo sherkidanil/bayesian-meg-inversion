@@ -7,7 +7,7 @@ HERE = Path(__file__).resolve().parent
 MODULE_ROOT = HERE.parent if HERE.name == "tests" else HERE
 sys.path.insert(0, str(MODULE_ROOT))
 
-from best_model_alias import artifact_hashes, assert_artifacts_match, switch_alias_atomically
+from meg_cfm.best_model_alias import artifact_hashes, assert_artifacts_match, switch_alias_atomically
 
 
 def _write_bundle(directory: Path, prefix: str) -> None:

@@ -44,6 +44,172 @@ RR^9$.
 
 = Methods
 
+== Conditional flow matching and temporal conditioning
+
+Target coordinates are standardized componentwise. For each training pair
+$(Y,theta_1)$, we sample $theta_0 tilde cal(N)(0,I_9)$ and
+$t tilde cal(U)[0,1]$, then regress the conditional flow-matching velocity
+
+$ cal(L) = EE norm(v_psi(t,(1-t)theta_0+t theta_1,Y) - (theta_1-theta_0))^2. $
+
+The final V1 encoder retains the raw sensor time series and replaces global
+temporal averaging by learned temporal attention. Three independent models
+are trained with the same frozen hyperparameters. Inference integrates the ODE
+for 96 Euler steps and uses prefix-stable banks of $S=400$ posterior draws.
+
+== Truth-free residual decoder
+
+Each draw is snapped to the common cortical mesh and converted to three
+Gaussian patches. A candidate configuration $c$ defines
+
+$ B(c) = G Phi(c)^T in RR^(M times K), quad
+  r(c) = norm((I-P_B)Y_f)_F / norm(Y_f)_F. $
+
+Here $Y_f$ is obtained by the same zero-phase fourth-order 2--25 Hz
+Butterworth filter used by RAP MUSIC. Since filtering acts on the right,
+$Y_f=Y F=B(A F)+eta F$, and it does not change $op("col")(B)$.
+
+Residuals form quadratic Gibbs weights
+
+$ w_s prop exp(-r_s^2/(2 tau^2)). $
+
+For each source slot, the reported estimate is the candidate mesh vertex that
+minimizes weighted geodesic distance to the other candidates: a cortical
+medoid, not a Euclidean posterior mean. Temperatures are frozen on dev
+separately for seeds 303, 304, and 305 at 0.009479, 0.020223, and 0.009929.
+A dev-only rule also selects 0, 0, and 1 greedy mesh-refinement passes. Neither
+temperature, aggregation, nor refinement receives held-out truth.
+
+#figure(
+  image("imgs/fig1_pipeline.pdf", width: 100%),
+  caption: [Truth-free CFM sampling and physics-based residual decoding.],
+) <pipeline>
+
+== Classical baselines and source matching
+
+The standard reference is MNE RAP MUSIC with three free-orientation point
+dipoles. For the equal-source-model comparison we implement scalar RAP MUSIC
+directly. At recursive stage $q$, a candidate topography $b$ is scored by
+
+$ rho_q(b) = norm((P_q^perp E_s)^T(P_q^perp b))_2 / norm(P_q^perp b)_2, $
+
+while retaining the full rank-three signal subspace $E_s$. Data and
+dictionaries receive the same rank-99 MNE SSP projector. With the
+fixed-orientation point dictionary, ordered predictions reproduce MNE on all
+700/700 branches. The matched variant changes only the dictionary to the three
+Gaussian-patch topography dictionaries $G Phi^T$ at radii (10,8,10) mm.
+
+Three predicted sources are matched to truth by the minimum over all six label
+permutations on the same weighted cortical graph. Geodesic failures remain
+non-finite. Confirmatory comparisons use explicit intersections of finite
+pairs. CFM uncertainty resamples both training seeds and cases; deterministic
+RAP uncertainty resamples cases. Paired Wilcoxon tests use case-level
+differences.
+
+== Frozen source-radius misspecification protocol
+
+Data retain the true radii (10,8,10) mm. At analysis, both methods receive
+either nominal radii or radii scaled by exactly 0.7 or 1.3. Patch-RAP rebuilds
+all dictionaries. CFM reuses the trained networks, all S=400 draws, and each
+nominal-dev temperature; only the analytic profiles in the residual decoder
+are changed. The strict mask intersects nominal and both perturbations for
+patch-RAP and all three CFM seeds. Relative degradation is the change in the
+masked mean divided by that method's own nominal masked mean. This relative
+scale and the directional outcome rule were frozen before held-out results
+were opened.
+
+= Results
+
+Source-model specification dominates method choice by an order of magnitude: changing
+the classical dictionary from point topographies to matched Gaussian patches moves
+geodesic MAE from 11.25 to 1.118 mm, whereas the CFM-versus-classical differences
+are within 1.5 mm. With correct radii patch-RAP is best (1.125 versus 2.716 mm on
+the strict misspecification mask); under 0.7× radii CFM is better (5.845 versus
+7.135 mm), and under 1.3× radii patch-RAP is again better (3.018 versus 4.985 mm).
+Although CFM degrades proportionally less at both perturbations, absolute
+degradation reverses at 1.3× (+2.269 mm for CFM versus +1.893 mm for patch-RAP),
+and equal weighting of nominal, 0.7×, and 1.3× regimes gives 3.759 mm for
+patch-RAP versus 4.515 mm for CFM. Thus the learned prior is proportionally softer
+under radius misspecification, but not enough to reverse the overall ranking:
+source-model specification matters more than algorithm selection, and patch-RAP
+remains the practical choice under this three-regime model.
+
+== Temporal attention versus standard point RAP MUSIC
+
+The final three-seed CFM pipeline gives 1.429 ± 0.205 mm Euclidean MAE,
+2.618 ± 0.288 mm geodesic MAE, and 5.543 ± 0.073 mm $Delta X'$. Standard
+free-orientation point RAP MUSIC gives 1.993, 3.836, and 5.982 mm. On the
+common finite set ($n=290$), the CFM-minus-RAP geodesic difference is
+-1.202 mm with hierarchical 95% interval [-1.905,-0.517] and one-sided
+Wilcoxon $p=0.000385$. The $Delta X'$ difference is -0.432 mm with interval
+[-0.814,-0.080], but Wilcoxon $p=0.101$; stability superiority is therefore
+not established.
+
+== Equal-source-model RAP MUSIC
+
+The apparent CFM accuracy advantage reverses when the classical method receives
+the matched Gaussian-patch source model. On the common patch-RAP/CFM mask
+($n=288$), patch-RAP gives 1.118 mm geodesic MAE and CFM 2.646 mm.
+Patch-RAP minus CFM is -1.527 mm; the hierarchical interval is
+[-2.143,-0.901] and one-sided Wilcoxon $p=1.85 times 10^(-25)$. All three
+CFM training seeds lose separately. The fixed-orientation point dictionary
+gives approximately 11.25 mm, so changing source specification moves the
+answer by about 10 mm; changing the inference method moves it by at most
+about 1.5 mm.
+
+#table(
+  columns: (2.2fr, 1fr),
+  table.header([Method and source model], [Geo MAE, mm]),
+  [Fixed-orientation point RAP], [11.25],
+  [Standard free-orientation point MNE RAP], [3.836],
+  [Temporal-attention CFM], [2.646],
+  [Matched Gaussian-patch RAP], [*1.118*],
+)
+
+== Radius misspecification
+
+All entries use the strict all-method/all-scale mask ($n=274$). Absolute and
+relative degradation are reported together because they answer different
+questions when nominal errors differ.
+
+#table(
+  columns: (0.8fr, 0.9fr, 0.8fr, 0.8fr, 0.9fr, 0.8fr, 0.8fr, 0.9fr),
+  table.header([Radii], [Patch], [Delta mm], [Delta %], [CFM], [Delta mm], [Delta %], [More accurate]),
+  [nominal], [1.125], [--], [--], [2.716], [--], [--], [patch-RAP],
+  [0.7×], [7.135], [+6.010], [+533.9%], [5.845], [+3.129], [+115.2%], [*CFM*],
+  [1.3×], [3.018], [+1.893], [+168.1%], [4.985], [+2.269], [+83.6%], [patch-RAP],
+)
+
+The preregistered relative contrast favours CFM at both perturbations. The
+patch-minus-CFM relative-degradation difference is +418.7 percentage points
+at 0.7× (95% interval [218.3,859.5], $p=2.32 times 10^(-37)$) and +84.6
+points at 1.3× ([10.2,241.8], $p=1.35 times 10^(-6)$). However, absolute
+degradation reverses at 1.3×: patch-RAP loses 1.893 mm and CFM 2.269 mm.
+The reversal follows from the nominal bases 1.125 and 2.716 mm.
+
+CFM is more accurate only in the 0.7× regime, where both methods are already
+strongly degraded. Under equal regime weights, expected geodesic MAE is
+$(1.125+7.135+3.018)/3=3.759$ mm for patch-RAP and
+$(2.716+5.845+4.985)/3=4.515$ mm for CFM. Thus proportional robustness of
+the learned prior does not overturn the practical ranking.
+
+== Lead-field perturbation and boundaries
+
+Using the zero-refinement S=400 decoder on one matched corpus, the geodesic
+cost of $"dG"$ is 0.713 ± 0.146 mm for CFM and 0.930 mm for RAP MUSIC.
+The RAP-minus-CFM difference is +0.217 mm with interval [-0.359,0.804], so the
+robustness difference is unresolved. $Delta X'$ costs are 0.271 ± 0.125 and
+0.260 mm. These within-method perturbation results are distinct from the
+source-radius experiment.
+
+All conclusions are limited to synthetic data for one subject, fixed $K=3$,
+fixed temporal source signatures, a known Gaussian profile family, and explicit
+finite-case masks. The radius experiment perturbs scale but not source-family
+shape. No universal superiority claim over algorithm classes is made.
+
+/*
+= Methods
+
 == Conditional flow matching
 
 Target coordinates are standardized componentwise. For each training pair
@@ -235,6 +401,8 @@ head-coordinate displacement. Source spacing, lead-field norm and normal angle,
 and the neighbour-correction branch were tested and rejected as primary
 explanations. We retain this as a protocol limitation affecting both methods
 and do not pursue further post-hoc hypotheses.
+
+*/
 
 // Add bibliography and create Bibiliography section
 #bibliography("bibliography.bib")

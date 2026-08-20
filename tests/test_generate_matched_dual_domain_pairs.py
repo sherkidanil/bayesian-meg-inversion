@@ -4,10 +4,10 @@ import sys
 import numpy as np
 
 HERE = Path(__file__).resolve().parent
-PROJECT_ROOT = HERE.parent.parent if HERE.name == "tests" else HERE
-sys.path.insert(0, str(PROJECT_ROOT))
+PROJECT_ROOT = HERE.parent if HERE.name == "tests" else HERE
+sys.path.insert(0, str(PROJECT_ROOT / "experiments"))
 
-from data_anna_shift.generate_matched_dual_domain_pairs import (
+from generate_matched_dual_domain_pairs import (
     anna_good_snr_mask,
     deterministic_split_indices,
     generate_noise_latents,

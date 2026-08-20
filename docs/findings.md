@@ -1,4 +1,18 @@
-# Findings: what an evaluation audit changed
+# Findings: source-model specification dominates method choice
+
+Source-model specification dominates method choice by an order of magnitude: changing
+the classical dictionary from point topographies to matched Gaussian patches moves
+geodesic MAE from 11.25 to 1.118 mm, whereas the CFM-versus-classical differences
+are within 1.5 mm. With correct radii patch-RAP is best (1.125 versus 2.716 mm on
+the strict misspecification mask); under 0.7× radii CFM is better (5.845 versus
+7.135 mm), and under 1.3× radii patch-RAP is again better (3.018 versus 4.985 mm).
+Although CFM degrades proportionally less at both perturbations, absolute
+degradation reverses at 1.3× (+2.269 mm for CFM versus +1.893 mm for patch-RAP),
+and equal weighting of nominal, 0.7×, and 1.3× regimes gives 3.759 mm for
+patch-RAP versus 4.515 mm for CFM. Thus the learned prior is proportionally softer
+under radius misspecification, but not enough to reverse the overall ranking:
+source-model specification matters more than algorithm selection, and patch-RAP
+remains the practical choice under this three-regime model.
 
 A record of four things this project got wrong, how each was detected, and what it cost. Written because the detection methods are reusable and the failure modes are not specific to MEG.
 
@@ -149,7 +163,9 @@ point dipoles; CFM uses fixed cortical-normal orientation while RAP uses free
 orientation; temporal source signatures are fixed across samples; and RAP
 estimates noise from the known empty 1.7–1.8 s window. A ±30% radius ablation
 degraded CFM hard-decoder geodesic MAE from 3.587 to 4.722–5.122 mm, confirming
-that patch-shape knowledge is material.
+that patch-shape knowledge is material. Those historical values are a
+single-seed, S=100 hard-argmin Anna-domain diagnostic, not the final matched
+three-seed experiment reported in §11.
 
 **Lesson.** A controlled retraining result is a model-by-domain matrix, not one
 improved number. The diagonal measures in-domain quality; the off-diagonal
@@ -263,5 +279,45 @@ MNE by `-2.583 mm`, interval `[-2.987,-2.204]`.
 **Lesson.** The pre-registered outcome is
 `source_shape_explains_cfm_advantage`. Once source-shape knowledge is equalized,
 the classical exhaustive subspace method is substantially more accurate than
-CFM. The network's remaining case is computational amortization, not superior
-localization accuracy on this benchmark.
+CFM under the correct analytic source model. Computational amortization and
+robustness to an incorrect source model remain distinct questions; the latter
+is resolved in §11.
+
+## 11. Proportional robustness does not reverse the practical ranking
+
+The last experiment asks both methods the same harder question: localize data
+generated with `(10,8,10) mm` Gaussian patches while the analytic model is
+forced to use radii scaled by `0.7` or `1.3`. Patch-RAP rebuilds its exhaustive
+dictionary. CFM keeps its nominally trained V1 networks, `S=400` draw banks,
+and dev-frozen temperatures; only the residual decoder's Gaussian profiles are
+wrong. Thus the trained proposal distribution is the only remaining source of
+nominal shape information on the CFM side.
+
+On the strict common mask across methods, scales, and all three seeds (`n=274`),
+patch-RAP's nominal `1.125 mm` rises to `7.135 mm` at `0.7×` and `3.018 mm` at
+`1.3×`: absolute losses of `6.010/1.893 mm` and relative losses of
+`533.9%/168.1%`. CFM's nominal `2.716 mm` rises to `5.845/4.985 mm`:
+absolute losses of `3.129/2.269 mm` and relative losses of
+`115.2%/83.6%`. The patch-minus-CFM
+relative-degradation contrasts are `+418.7` percentage points
+(`[218.3,859.5]`, `p=2.32e-37`) and `+84.6` points (`[10.2,241.8]`,
+`p=1.35e-6`). Each CFM training seed agrees in direction.
+
+The outcome rule was fixed before calculation and requires the same direction,
+a non-crossing hierarchical interval, and one-sided `p<0.05` at both scales.
+Its literal relative-scale verdict is `learned_prior_more_robust`. Absolute
+degradation gives the opposite answer at `1.3×`: patch-RAP loses `1.893 mm`
+while CFM loses `2.269 mm`, because their nominal denominators differ by more
+than a factor of two. CFM is more accurate only at `0.7×`, where both methods
+are already badly degraded; patch-RAP wins at nominal and `1.3×`.
+
+Equal weighting of the three regimes gives expected Geo
+`(1.125+7.135+3.018)/3=3.759 mm` for patch-RAP and
+`(2.716+5.845+4.985)/3=4.515 mm` for CFM. The learned proposal distribution
+softens proportional damage, but the classical exhaustive method remains the
+practical choice under this explicit uncertainty model.
+
+The often-quoted `6.350 ± 0.555 mm` result is instead the point-source `R→0`
+ablation. Keeping the two experiments separate is essential: one changes the
+source class completely, the other measures moderate misspecification around
+the trained simulator.

@@ -4,7 +4,7 @@ Amortised posterior inference for the MEG inverse problem: a conditional flow-ma
 
 Companion code to ongoing work at Skoltech / HSE / AIRI, following [Bayesian Inverse Problems Meet Flow Matching](https://arxiv.org/abs/2503.01375) (arXiv:2503.01375).
 
-> **Status: source-matched validation complete.** The frozen numerical source of
+> **Status: prepublication validation complete.** The frozen numerical source of
 > truth is [`reports/RESULTS.md`](reports/RESULTS.md). The 2–25 Hz recomputation
 > and final comparison boundaries are documented in
 > [`reports/METHOD.md`](reports/METHOD.md).
@@ -46,9 +46,14 @@ count on dev before held-out is opened.
 
 ## Results
 
+The main practical result is about model specification, not a universal winner:
+changing the classical dictionary from point topographies to matched Gaussian
+patches moves geodesic MAE from about `11.25` to `1.118 mm`. That order-of-magnitude
+change is much larger than the remaining CFM-versus-classical gap.
+
 On the matched server-lead-field benchmark, temporal-attention CFM with the
 cortical medoid, `S=400`, and dev-selected mesh refinement is more accurate
-than standard free-orientation point-dipole MNE RAP MUSIC:
+than the matched RAP MUSIC pipeline:
 
 | Method | MAE euc | MAE geo | $\Delta X'$ euc |
 |---|---:|---:|---:|
@@ -60,24 +65,21 @@ the common finite mask (`n=290`), the seed-and-case mean geodesic difference
 CFM−RAP is `-1.202 mm`; a hierarchical bootstrap gives
 `[-1.905,-0.517] mm`, and the one-sided paired Wilcoxon test gives
 `p=0.000385`. Delta X' is numerically lower by `0.432 mm`, but its one-sided
-Wilcoxon result is not significant (`p=0.101`). This comparison is not matched
-for source-shape information.
+Wilcoxon result is not significant (`p=0.101`), so the final claim is accuracy
+and speed rather than three-axis Pareto dominance.
 
-A source-matched classical baseline changes the conclusion. We implemented
-scalar RAP MUSIC over an explicit candidate dictionary and first validated it
-against MNE with point topographies and fixed orientation: ordered predictions
-match on all `700/700` branches after applying the same rank-99 SSP projector.
-Replacing only the point dictionary by the simulated Gaussian-patch
-dictionaries gives `1.118 mm` geodesic MAE, versus `2.646 mm` for CFM on the
-common finite mask (`n=288`). Patch-RAP minus CFM is `-1.527 mm`, with a
-hierarchical 95% interval `[-2.143,-0.901] mm` and one-sided Wilcoxon
-`p=1.85e-25`. All three CFM seeds lose separately. The pre-registered outcome
-is therefore that source-shape knowledge explains and reverses the apparent
-CFM accuracy advantage.
+A validated scalar RAP implementation was first checked against MNE on all
+`700/700` point-source branches, then rerun with matched Gaussian-patch
+dictionaries. On the locked common finite mask, matched patch-RAP gives
+`1.118 mm` geodesic MAE versus `2.646 mm` for CFM. Thus the earlier CFM advantage
+over standard point/free-orientation RAP MUSIC does not survive source-model
+matching: specification of the source family dominates algorithm selection.
 
-The earlier raw-residual greedy patch scan (`7.880 mm`) remains useful only as
-a negative optimizer result. It is not RAP MUSIC and does not establish that
-network proposals add localization information.
+Under a frozen ±30% radius-misspecification test, CFM degrades less in percentage
+terms at both perturbations, but absolute accuracy is mixed. At `0.7×`, CFM is
+better (`5.845` versus `7.135 mm`); at nominal radii and `1.3×`, patch-RAP is
+better (`1.125` versus `2.716 mm`, and `3.018` versus `4.985 mm`). Equal weighting
+of the three regimes gives `3.759 mm` for patch-RAP and `4.515 mm` for CFM.
 
 The zero-refinement `S=400` same-corpus lead-field perturbation result is more
 cautious. On the
@@ -86,10 +88,10 @@ four-sided intersection of RAP MUSIC and all three CFM seeds, CFM's Geo cost is
 interval for RAP−CFM, `[-0.359,0.804] mm`, crosses zero. Delta-X costs are
 effectively equal (`0.271 ± 0.125` versus `0.260 mm`).
 
-Orientation is material: on the common finite mask, fixed-orientation point RAP
-is `+7.416 mm` worse than free-orientation MNE. Replacing the base CFM residual
-basis by point sources degrades Geo to `6.350 ± 0.555 mm`; the validated
-Gaussian-patch RAP run is the symmetric source-family control.
+The standard MNE comparison remains a full-pipeline comparison: CFM uses fixed
+cortical-normal extended sources, while MNE RAP MUSIC fits point dipoles with
+free orientation. The matched scalar patch-RAP control isolates the source
+dictionary on the shared fixed-orientation forward model.
 
 ## What this repository also documents
 
@@ -135,12 +137,11 @@ Every run writes `summary.json` with input SHA-256 hashes, git HEAD, and a flag 
 ## Comparison boundary
 
 Code review closed the graph, source-matching, dataset, and metric-definition
-questions, and final claims use explicit common finite masks. Standard MNE RAP
-and CFM remain a full-pipeline comparison, while patch-RAP equalizes the
-simulated source family and reverses the accuracy result. Both equal-prior
-methods receive simulation-known radii. Results are from one synthetic subject
-with fixed temporal signatures and therefore are not universal claims about
-algorithm classes.
+questions, and final claims use an explicit common finite mask. The measured
+dominance applies to two complete pipelines on one synthetic subject. The
+pipelines still differ in source-shape prior, orientation model, fixed temporal
+signatures, and RAP's empty-window noise estimate, so it is not a universal
+comparison of algorithm classes.
 
 ## Authors
 

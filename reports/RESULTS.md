@@ -1,6 +1,20 @@
-# Canonical results: temporal-attention CFM versus matched RAP MUSIC
+# Canonical results: source-model specification dominates method choice
 
-Date: 2026-08-19
+Date: 2026-08-20
+
+Source-model specification dominates method choice by an order of magnitude: changing
+the classical dictionary from point topographies to matched Gaussian patches moves
+geodesic MAE from 11.25 to 1.118 mm, whereas the CFM-versus-classical differences
+are within 1.5 mm. With correct radii patch-RAP is best (1.125 versus 2.716 mm on
+the strict misspecification mask); under 0.7× radii CFM is better (5.845 versus
+7.135 mm), and under 1.3× radii patch-RAP is again better (3.018 versus 4.985 mm).
+Although CFM degrades proportionally less at both perturbations, absolute
+degradation reverses at 1.3× (+2.269 mm for CFM versus +1.893 mm for patch-RAP),
+and equal weighting of nominal, 0.7×, and 1.3× regimes gives 3.759 mm for
+patch-RAP versus 4.515 mm for CFM. Thus the learned prior is proportionally softer
+under radius misspecification, but not enough to reverse the overall ranking:
+source-model specification matters more than algorithm selection, and patch-RAP
+remains the practical choice under this three-regime model.
 
 ## Final result
 
@@ -274,6 +288,63 @@ The vectorized patch scan averages `0.0879 s` of CPU time per branch and
 MNE must not be transferred to this custom equal-prior implementation without
 a dedicated end-to-end timing protocol.
 
+## Source-radius misspecification: proportional and absolute robustness
+
+The final experiment perturbs the analytic radii by the same `±30%` in both
+methods. Patch-RAP rebuilds its exhaustive topography dictionary at
+`(7,5.6,7) mm` or `(13,10.4,13) mm`. CFM reuses the three trained V1 networks,
+their prefix-stable `S=400` posterior banks, and each seed's nominal dev-frozen
+quadratic-medoid temperature; only the radii inside the truth-free residual
+decoder are changed. The networks are not retrained. This directly tests
+whether the learned proposal distribution can compensate for an incorrect
+analytic source model.
+
+All levels below use one strict mask: the locked headline mask intersected with
+finite geodesic pairs for nominal, `0.7×`, and `1.3×` patch-RAP and all three
+CFM seeds (`n=274`). Relative degradation is computed from aggregate means on
+this same mask.
+
+| decoder radii | patch-RAP Geo, mm | patch degradation | CFM Geo, mm | CFM degradation | patch−CFM relative degradation |
+|---|---:|---:|---:|---:|---:|
+| nominal | 1.125 | — | 2.716 | — | — |
+| `0.7×` | 7.135 | +6.010 mm; **+533.9%** | 5.845 | +3.129 mm; **+115.2%** | +418.7 pp |
+| `1.3×` | 3.018 | +1.893 mm; **+168.1%** | 4.985 | +2.269 mm; **+83.6%** | +84.6 pp |
+
+At `0.7×`, the hierarchical interval for the relative-degradation difference
+is `[218.3,859.5]` percentage points and one-sided Wilcoxon gives
+`p=2.32e-37`. At `1.3×`, the interval is `[10.2,241.8]` points and
+`p=1.35e-6`. Every CFM seed shows the same qualitative result: its relative
+degradation is `106.1–124.6%` at `0.7×` and `76.0–98.3%` at `1.3×`.
+The outcome rule was frozen before these runs and requires both scales, a
+strictly positive hierarchical interval, and `p<0.05`; it classifies the
+result as `learned_prior_more_robust` on the preregistered relative scale.
+The planned fallback variant is not warranted.
+
+Non-finite branch counts out of 700 are `17/27/18` for patch-RAP at
+nominal/`0.7×`/`1.3×`. For CFM they are `22/27/24`, `15/26/23`, and
+`20/22/27` for seeds `303`, `304`, and `305`, respectively. The strict common
+mask prevents any method-specific failure handling from entering the reported
+accuracy contrast.
+
+The absolute and relative measures reverse at `1.3×`: relative degradation
+favours CFM (`83.6% < 168.1%`), but absolute degradation favours patch-RAP
+(`1.893 < 2.269 mm`). This is caused by the different nominal denominators
+(`1.125` versus `2.716 mm`). CFM is more accurate in only one of the three
+regimes, `0.7×`, where both methods are already strongly degraded. Patch-RAP
+is more accurate at nominal and `1.3×`.
+
+With equal probability assigned to nominal, `0.7×`, and `1.3×`, expected
+geodesic MAE is `(1.125+7.135+3.018)/3 = 3.759 mm` for patch-RAP and
+`(2.716+5.845+4.985)/3 = 4.515 mm` for CFM. Thus the classical exhaustive
+method remains the practical choice under this three-regime model. The learned
+prior degrades proportionally more softly, but that does not reverse the
+overall accuracy ranking.
+
+The previous `6.350 ± 0.555 mm` CFM number is the point-source `R→0` ablation,
+not the `±30%` result. Historical `5.122/4.722 mm` values used a single seed,
+`S=100` hard argmin, Anna-G/Anna-domain data, and are not comparable to this
+three-seed server-domain `S=400` experiment.
+
 ## Metric and reporting conventions
 
 - `single_draw` measures the raw sampler.
@@ -308,6 +379,10 @@ Matched patch-RAP artifact root:
 
 `/mnt/storage/data/tester/meg_patch_rapmusic_20260819/`
 
+Source-radius misspecification artifact root:
+
+`/mnt/storage/data/tester/meg_source_misspec_20260820/`
+
 Key artifacts:
 
 - `seed_aggregate/summary.json`: V0/V1 seed audit at 100 draws;
@@ -336,6 +411,12 @@ Key artifacts:
   point/MNE, and fixed/free-orientation tests;
 - `aggregate/masks_and_errors.npz`: exact masks and per-case errors;
 - `sensor_projector.npz`: persisted rank-99 MNE SSP projector.
+- `run/patch_dictionary_scale_{070,130}.npz`: perturbed patch dictionaries;
+- `run/patch_scale_{070,130}.npz` and `run/cfm_*_scale_{070,130}.npz`:
+  per-case misspecification predictions and metrics;
+- `aggregate/summary.json`: frozen outcome, hierarchical intervals, and tests;
+- `aggregate/masks_and_errors.npz` under the misspecification root: strict
+  common mask and exact per-case errors.
 
-The final code is on branch `codex/patch-rapmusic`. No additional computational
+The final code is on branch `codex/source-misspec`. No additional computational
 experiments are required; the next phase is manuscript consolidation.
