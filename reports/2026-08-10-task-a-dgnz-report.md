@@ -1,7 +1,7 @@
 # Truth-free sensor-residual posterior rescoring
 
-- Scenario: `/mnt/local/tester/meg/data_anna_shift/anna_dgnz.npz`
-- Localization G: `/mnt/local/tester/meg/data_anna_shift/anna_dg0.npz` element 0, verified constant
+- Scenario: `${MEG_CFM_WORKSPACE}/data_anna_shift/anna_dgnz.npz`
+- Localization G: `${MEG_CFM_WORKSPACE}/data_anna_shift/anna_dg0.npz` element 0, verified constant
 - Scenario `G_for_simulation` was not loaded or used by the estimator.
 - Samples: 315; draws per input: 100
 - `residual_selected`, `single_draw`, `posterior_mean_naive`, and `posterior_medoid` are truth-free.

@@ -365,23 +365,23 @@ three-seed server-domain `S=400` experiment.
 
 Primary artifact root:
 
-`/mnt/storage/data/tester/meg_beat_rapmusic_20260819/v1_followup/`
+`${MEG_CFM_ARTIFACT_ROOT}/meg_beat_rapmusic_20260819/v1_followup/`
 
 Finalization artifact root:
 
-`/mnt/storage/data/tester/meg_finalize_v1_20260819/`
+`${MEG_CFM_ARTIFACT_ROOT}/meg_finalize_v1_20260819/`
 
 Prepublication artifact root:
 
-`/mnt/storage/data/tester/meg_prepublication_20260819/`
+`${MEG_CFM_ARTIFACT_ROOT}/meg_prepublication_20260819/`
 
 Matched patch-RAP artifact root:
 
-`/mnt/storage/data/tester/meg_patch_rapmusic_20260819/`
+`${MEG_CFM_ARTIFACT_ROOT}/meg_patch_rapmusic_20260819/`
 
 Source-radius misspecification artifact root:
 
-`/mnt/storage/data/tester/meg_source_misspec_20260820/`
+`${MEG_CFM_ARTIFACT_ROOT}/meg_source_misspec_20260820/`
 
 Key artifacts:
 
@@ -418,5 +418,6 @@ Key artifacts:
 - `aggregate/masks_and_errors.npz` under the misspecification root: strict
   common mask and exact per-case errors.
 
-The final code is on branch `codex/source-misspec`. No additional computational
-experiments are required; the next phase is manuscript consolidation.
+The frozen source-misspecification implementation is included in `main`.
+No additional computational experiments are required for this result; the next
+phase is manuscript consolidation.

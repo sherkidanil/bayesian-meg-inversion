@@ -11,6 +11,18 @@ Companion code to ongoing work at Skoltech / HSE / AIRI, following [Bayesian Inv
 
 ---
 
+## Start here
+
+- [`reports/EXECUTIVE_SUMMARY.md`](reports/EXECUTIVE_SUMMARY.md) gives the short scientific conclusion.
+- [`reports/METHOD.md`](reports/METHOD.md) defines the forward model, decoder, metrics, and comparison boundary.
+- [`reports/RESULTS.md`](reports/RESULTS.md) is the frozen numerical source of truth.
+- [`docs/math.md`](docs/math.md) contains the mathematical derivations.
+- [`docs/testing.md`](docs/testing.md) documents the test environment and GPU precision policy.
+
+The repository contains source code, tests, manuscript sources, and compact
+result summaries. Large datasets, checkpoints, and generated run directories
+are excluded intentionally.
+
 ## The problem
 
 Given magnetometer recordings $Y \in \mathbb{R}^{102 \times 1800}$, recover the locations of $K = 3$ extended cortical sources. The forward model is
@@ -93,6 +105,26 @@ cortical-normal extended sources, while MNE RAP MUSIC fits point dipoles with
 free orientation. The matched scalar patch-RAP control isolates the source
 dictionary on the shared fixed-orientation forward model.
 
+### Fixed-K Transformer extension
+
+A separate `K=3`, `S=800` experiment compares MLP and Transformer estimators on
+an identical set of records without disconnected, non-finite, or capped pairs.
+The metric is the ordinary uncapped geodesic MAE; coverage is reported
+separately.
+
+| Method | Common-valid MAE geo | Individual coverage |
+|---|---:|---:|
+| MLP, Gibbs medoid | 1.164 mm | 80.57% |
+| Transformer, Gibbs medoid | **0.812 mm** | 79.71% |
+| Transformer, max-ρ | 0.661 mm | 92.57% |
+| Fine-tuned Transformer, max-ρ | **0.620 mm** | **93.71%** |
+
+The architecture-only comparison uses 244 common records; the four-pipeline
+comparison uses 242. This extension has its own frozen inputs, manifests,
+recalculation script, and interpretation in
+[`reports/transformer-common-valid/`](reports/transformer-common-valid/README.md).
+It is a separate protocol from the CFM-versus-RAP comparison above.
+
 ## What this repository also documents
 
 An audit that changed the project's conclusions, written up in [`docs/findings.md`](docs/findings.md):
@@ -109,30 +141,48 @@ src/meg_cfm/       reusable modules: metrics, simulator, decoders, provenance
 experiments/       reproducible scripts, one per audit or measurement
 tests/             unit tests, including leakage guards on truth-free estimators
 docs/              mathematical appendix and findings write-up
-reports/           canonical RESULTS.md plus dated provenance logs
+reports/           executive summary, method, results, and provenance logs
 paper/             manuscript source (Typst, draft)
 ```
 
-## Install
+## Install and test
 
 ```bash
-pip install -e .
-pytest
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[dev]"
+pytest -q
 ```
 
-Requires Python 3.11+, JAX with CUDA for training, MNE-Python for lead-field construction.
+The code requires Python 3.11 or newer. Training uses JAX and benefits from a
+CUDA-capable GPU; the unit test suite runs on CPU without paper artifacts. See
+[`docs/testing.md`](docs/testing.md) for numerical precision details.
 
 ## Reproducing
 
 Large artefacts — datasets, checkpoints, Optuna databases — are deliberately not tracked. Scripts take explicit paths:
 
 ```bash
-python experiments/estimator_audit.py --model_dir <ckpt> --dataset_npz <data> --out_dir reports/audit
-python experiments/leadfield_provenance.py --datasets <a.npz> <b.npz> --out_dir reports/provenance
-python experiments/shift_stability_paired.py --dataset_npz <paired.npz> --estimator smooth --out_dir reports/shift
+python experiments/estimator_audit.py \
+  --model_dir <checkpoint-directory> \
+  --dataset_npz <dataset.npz> \
+  --out_dir <output-directory>
+
+python experiments/historical_leadfield_provenance.py \
+  --anna_dg0_npz <paired-dataset.npz> \
+  --calibration_summary <calibration-summary.json> \
+  --datasets <dataset-a.npz> <dataset-b.npz> \
+  --out_dir <output-directory>
+
+python experiments/shift_stability_paired.py \
+  --dataset_npz <paired-dataset.npz> \
+  --out_dir <output-directory>
 ```
 
-Every run writes `summary.json` with input SHA-256 hashes, git HEAD, and a flag recording whether the repository changed mid-run.
+Historical report paths use `${MEG_CFM_WORKSPACE}` for the original experiment
+checkout and `${MEG_CFM_ARTIFACT_ROOT}` for generated server artifacts. Every
+new run should record input hashes, the Git revision, and whether the checkout
+changed during execution.
 
 ## Comparison boundary
 

@@ -460,7 +460,7 @@ def main():
     p.add_argument("--study", type=str, default="meg_fm_cnn_mesh")
     p.add_argument("--n_trials", type=int, default=100)
     p.add_argument("--gpu", type=str, default="0")
-    p.add_argument("--dataset_npz", type=str, default="/mnt/local/tester/meg/meg_flow_dataset_10000_new.npz")
+    p.add_argument("--dataset_npz", type=str, required=True)
     p.add_argument("--seed", type=int, default=42)
     args = p.parse_args()
 

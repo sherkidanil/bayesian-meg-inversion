@@ -91,4 +91,4 @@ Both Task A summaries contain `n_samples=315`,
 - `dG≠0` smooth predictions: `f96895cec1eeb8e4a863e9634152e2993f89efdf70b604f38de09b5121c950af`
 
 Full CSV and NPZ artifacts remain under
-`/mnt/local/tester/meg/reports/honest_smooth_anna_{dg0,dgnz}_20260811/`.
+`${MEG_CFM_WORKSPACE}/reports/honest_smooth_anna_{dg0,dgnz}_20260811/`.

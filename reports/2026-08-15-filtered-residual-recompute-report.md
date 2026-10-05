@@ -87,7 +87,7 @@ Y_f=YF=B(AF)+\eta F.
 
 ## Артефакты
 
-- Корень серверного прогона: `/mnt/storage/data/tester/meg_recompute_after_review_20260815/`.
+- Корень серверного прогона: `${MEG_CFM_ARTIFACT_ROOT}/meg_recompute_after_review_20260815/`.
 - Dev-заморозка: `tau_filtered_dev/selection.json`.
 - Полные сценарии: `filtered_dg0/`, `filtered_dgnz/`.
 - Парные аудиты: `paired_dg0_argmin/`, `paired_dg0_smooth/`, `paired_dgnz_argmin/`, `paired_dgnz_smooth/`.

@@ -20,6 +20,8 @@ authors:
     family-names: Muravleva
     affiliation: Skoltech, Sber
 license: MIT
+repository-code: "https://github.com/sherkidanil/bayesian-meg-inversion"
+url: "https://arxiv.org/abs/2503.01375"
 references:
   - type: article
     title: "Bayesian Inverse Problems Meet Flow Matching: Efficient and Flexible Inference via Transformers"

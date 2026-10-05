@@ -21,11 +21,11 @@
 
 С публичного Яндекс.Диска скачаны:
 
-- `/mnt/local/tester/meg/data_anna_shift/anna_dg0.npz`, 2,133,468,311 байт;
-- `/mnt/local/tester/meg/data_anna_shift/anna_dgnz.npz`, 2,133,468,311 байт;
-- `/mnt/local/tester/meg/data_anna_shift/Several_source_simulations_upd_07_05_2026.py`, 39,990 байт.
+- `${MEG_CFM_WORKSPACE}/data_anna_shift/anna_dg0.npz`, 2,133,468,311 байт;
+- `${MEG_CFM_WORKSPACE}/data_anna_shift/anna_dgnz.npz`, 2,133,468,311 байт;
+- `${MEG_CFM_WORKSPACE}/data_anna_shift/Several_source_simulations_upd_07_05_2026.py`, 39,990 байт.
 
-Код генерации по ссылке оказался одиночным `.py`, а не ZIP; ему возвращено имя из метаданных Яндекс.Диска. SHA-256 и полная инвентаризация записаны в `/mnt/local/tester/meg/data_anna_shift/DATASET_NOTES.md`.
+Код генерации по ссылке оказался одиночным `.py`, а не ZIP; ему возвращено имя из метаданных Яндекс.Диска. SHA-256 и полная инвентаризация записаны в `${MEG_CFM_WORKSPACE}/data_anna_shift/DATASET_NOTES.md`.
 
 Проверено фактически:
 
@@ -37,27 +37,22 @@
 - генератор переиспользует внутри пары временную активацию, lead field и шум, меняя spatial activation;
 - в каждом датасете есть одна пара с нулевым сдвигом всех трёх источников.
 
-Сырые результаты в `/mnt/local/tester/meg/reports/shift_paired_setup_20260810_135708/dataset_validation.json`.
+Сырые результаты в `${MEG_CFM_WORKSPACE}/reports/shift_paired_setup_20260810_135708/dataset_validation.json`.
 
-### 2. Git и изоляция
+### 2. Воспроизводимость
 
-Изначально `/mnt/local/tester/meg` не был Git-репозиторием. По команде пользователя выполнено:
-
-- `git init -b codex/deltax-stability`;
-- создан `.gitignore`, исключающий `.env`, датасеты, чекпоинты, БД, логи, модели и generated reports;
-- исходный код и текстовые файлы зафиксированы коммитом `32e7285 Initialize MEG experiment repository`;
-- создан worktree `/mnt/local/tester/meg/.worktrees/deltax-compute` на ветке `codex/deltax-compute`;
-- тяжёлые игнорируемые датасеты и чекпоинты подключены в worktree символическими ссылками.
-
-После восстановления ссылок полный набор тестов дал `43 passed, 1 warning`.
+Датасеты, чекпоинты и тяжёлые результаты не входят в Git. Их пути передаются
+скриптам явно через аргументы командной строки. Исходная контрольная версия
+кода зафиксирована коммитом `32e7285`; на момент эксперимента полный набор
+тестов давал `43 passed, 1 warning`.
 
 ### 3. Реализация оценки
 
 Созданы:
 
-- `/mnt/local/tester/meg/new_version_mesh_experiments/cnn_shift_stability_paired.py`;
-- `/mnt/local/tester/meg/new_version_mesh_experiments/tests/test_cnn_shift_stability_paired.py`;
-- `/mnt/local/tester/meg/data_anna_shift/DATASET_NOTES.md`.
+- `${MEG_CFM_WORKSPACE}/new_version_mesh_experiments/cnn_shift_stability_paired.py`;
+- `${MEG_CFM_WORKSPACE}/new_version_mesh_experiments/tests/test_cnn_shift_stability_paired.py`;
+- `${MEG_CFM_WORKSPACE}/data_anna_shift/DATASET_NOTES.md`.
 
 Новый скрипт:
 
@@ -76,24 +71,24 @@
 
 Smoke, по восемь пар:
 
-- GPU 1: `/mnt/local/tester/meg/reports/shift_paired_smoke_dg0_20260810_141514/`;
-- GPU 2: `/mnt/local/tester/meg/reports/shift_paired_smoke_dgnz_20260810_141514/`.
+- GPU 1: `${MEG_CFM_WORKSPACE}/reports/shift_paired_smoke_dg0_20260810_141514/`;
+- GPU 2: `${MEG_CFM_WORKSPACE}/reports/shift_paired_smoke_dgnz_20260810_141514/`.
 
 Полные прогоны:
 
-- GPU 1, `dG=0`: `/mnt/local/tester/meg/reports/shift_paired_dg0_20260810_141840/`;
-- GPU 2, `dG!=0`: `/mnt/local/tester/meg/reports/shift_paired_dgnz_20260810_141840/`.
+- GPU 1, `dG=0`: `${MEG_CFM_WORKSPACE}/reports/shift_paired_dg0_20260810_141840/`;
+- GPU 2, `dG!=0`: `${MEG_CFM_WORKSPACE}/reports/shift_paired_dgnz_20260810_141840/`.
 
 Основной цикл 315 пар занял 17.2 и 17.1 секунды соответственно, без учёта загрузки NPZ и JIT/timing warm-up. Использованы 25 posterior draws и 96 ODE steps.
 
 Диагностические fixed-test posterior mean re-eval:
 
-- 25 draws: `/mnt/local/tester/meg/reports/shift_paired_reference_recheck_20260810_141514/`;
-- 100 draws: `/mnt/local/tester/meg/reports/shift_paired_reference_recheck_n100_20260810_141514/`.
+- 25 draws: `${MEG_CFM_WORKSPACE}/reports/shift_paired_reference_recheck_20260810_141514/`;
+- 100 draws: `${MEG_CFM_WORKSPACE}/reports/shift_paired_reference_recheck_n100_20260810_141514/`.
 
 CPU timing:
 
-- `/mnt/local/tester/meg/reports/shift_paired_cpu_timing_20260810_141840/`.
+- `${MEG_CFM_WORKSPACE}/reports/shift_paired_cpu_timing_20260810_141840/`.
 
 Steady end-to-end inference для одного `Y`:
 
@@ -163,28 +158,28 @@ Steady end-to-end inference для одного `Y`:
 
 Научный отчёт:
 
-- `/mnt/local/tester/meg/reports/shift_paired_report_20260810_141840.md`
+- `${MEG_CFM_WORKSPACE}/reports/shift_paired_report_20260810_141840.md`
 
 Объединённые данные:
 
-- `/mnt/local/tester/meg/reports/shift_paired_per_sample_metrics_20260810_141840.csv` — 630 строк;
-- `/mnt/local/tester/meg/reports/shift_paired_summary_20260810_141840.json`.
+- `${MEG_CFM_WORKSPACE}/reports/shift_paired_per_sample_metrics_20260810_141840.csv` — 630 строк;
+- `${MEG_CFM_WORKSPACE}/reports/shift_paired_summary_20260810_141840.json`.
 
 Основные сырые прогоны:
 
-- `/mnt/local/tester/meg/reports/shift_paired_dg0_20260810_141840/`;
-- `/mnt/local/tester/meg/reports/shift_paired_dgnz_20260810_141840/`;
-- `/mnt/local/tester/meg/reports/shift_paired_cpu_timing_20260810_141840/`.
+- `${MEG_CFM_WORKSPACE}/reports/shift_paired_dg0_20260810_141840/`;
+- `${MEG_CFM_WORKSPACE}/reports/shift_paired_dgnz_20260810_141840/`;
+- `${MEG_CFM_WORKSPACE}/reports/shift_paired_cpu_timing_20260810_141840/`.
 
 Данные и их описание:
 
-- `/mnt/local/tester/meg/data_anna_shift/`;
-- `/mnt/local/tester/meg/data_anna_shift/DATASET_NOTES.md`.
+- `${MEG_CFM_WORKSPACE}/data_anna_shift/`;
+- `${MEG_CFM_WORKSPACE}/data_anna_shift/DATASET_NOTES.md`.
 
 Код:
 
-- `/mnt/local/tester/meg/new_version_mesh_experiments/cnn_shift_stability_paired.py`;
-- `/mnt/local/tester/meg/new_version_mesh_experiments/tests/test_cnn_shift_stability_paired.py`.
+- `${MEG_CFM_WORKSPACE}/new_version_mesh_experiments/cnn_shift_stability_paired.py`;
+- `${MEG_CFM_WORKSPACE}/new_version_mesh_experiments/tests/test_cnn_shift_stability_paired.py`.
 
 ## Что дальше
 

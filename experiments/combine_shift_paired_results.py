@@ -1,21 +1,42 @@
 #!/usr/bin/env python3
+"""Combine paired-shift run artifacts into one summary and per-sample table."""
+
+from __future__ import annotations
+
+import argparse
 import csv
 import json
 from pathlib import Path
 
 
-ROOT = Path("/mnt/local/tester/meg/reports")
-STAMP = "20260810_141840"
-RUNS = {
-    "dG = 0": ROOT / f"shift_paired_dg0_{STAMP}",
-    "dG != 0": ROOT / f"shift_paired_dgnz_{STAMP}",
-}
-CPU = ROOT / f"shift_paired_cpu_timing_{STAMP}"
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--root",
+        type=Path,
+        required=True,
+        help="Directory containing the paired-shift run folders",
+    )
+    parser.add_argument(
+        "--stamp",
+        default="20260810_141840",
+        help="Run suffix shared by the input folders",
+    )
+    return parser.parse_args()
 
 
-def main():
-    summaries = {name: json.loads((path / "summary.json").read_text()) for name, path in RUNS.items()}
-    cpu = json.loads((CPU / "summary.json").read_text())
+def main() -> None:
+    args = parse_args()
+    root = args.root.expanduser().resolve()
+    runs = {
+        "dG = 0": root / f"shift_paired_dg0_{args.stamp}",
+        "dG != 0": root / f"shift_paired_dgnz_{args.stamp}",
+    }
+    cpu = root / f"shift_paired_cpu_timing_{args.stamp}"
+    summaries = {
+        name: json.loads((path / "summary.json").read_text()) for name, path in runs.items()
+    }
+    cpu_summary = json.loads((cpu / "summary.json").read_text())
     combined = {
         "created_utc": "2026-08-10",
         "estimator": "posterior_mean",
@@ -28,7 +49,7 @@ def main():
         "timing": {
             "gpu_dG0": summaries["dG = 0"]["timing"],
             "gpu_dG_nonzero": summaries["dG != 0"]["timing"],
-            "cpu": cpu["timing"],
+            "cpu": cpu_summary["timing"],
         },
         "reference_posterior_mean_rechecks": {
             "n25_fixed_test_mae_geo_mm": 9.479570,
@@ -37,24 +58,26 @@ def main():
             "n100_fixed_test_mae_euc_mm": 4.645638,
         },
         "artifacts": {
-            "dG0_run": str(RUNS["dG = 0"]),
-            "dG_nonzero_run": str(RUNS["dG != 0"]),
-            "cpu_timing_run": str(CPU),
-            "fixed_test_recheck_n25": str(ROOT / "shift_paired_reference_recheck_20260810_141514"),
-            "fixed_test_recheck_n100": str(ROOT / "shift_paired_reference_recheck_n100_20260810_141514"),
+            "dG0_run": str(runs["dG = 0"]),
+            "dG_nonzero_run": str(runs["dG != 0"]),
+            "cpu_timing_run": str(cpu),
+            "fixed_test_recheck_n25": str(root / "shift_paired_reference_recheck_20260810_141514"),
+            "fixed_test_recheck_n100": str(
+                root / "shift_paired_reference_recheck_n100_20260810_141514"
+            ),
         },
     }
-    (ROOT / f"shift_paired_summary_{STAMP}.json").write_text(
-        json.dumps(combined, indent=2, ensure_ascii=False), encoding="utf-8"
+    (root / f"shift_paired_summary_{args.stamp}.json").write_text(
+        json.dumps(combined, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
     )
 
     rows = []
-    for scenario, path in RUNS.items():
+    for scenario, path in runs.items():
         with (path / "per_sample_metrics.csv").open(newline="", encoding="utf-8") as stream:
-            for row in csv.DictReader(stream):
-                rows.append({"scenario": scenario, **row})
+            rows.extend({"scenario": scenario, **row} for row in csv.DictReader(stream))
     fields = ["scenario"] + sorted({key for row in rows for key in row if key != "scenario"})
-    with (ROOT / f"shift_paired_per_sample_metrics_{STAMP}.csv").open(
+    with (root / f"shift_paired_per_sample_metrics_{args.stamp}.csv").open(
         "w", newline="", encoding="utf-8"
     ) as stream:
         writer = csv.DictWriter(stream, fieldnames=fields)
