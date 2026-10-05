@@ -108,7 +108,7 @@ $$Y_{:,t}=B\,A_{:,t}=a_1(t)b_1+a_2(t)b_2+a_3(t)b_3$$
 
 **Проектор.** Ближайшая к `y` точка подпространства решает `min_α‖y-Bα‖²`; из нормальных уравнений `BᵀBα=Bᵀy` следует
 
-$$P_B=B(B^\top B)^{-1}B^\top,\qquad P_B^2=P_B,\quad P_B^\top=P_B,\quad \operatorname{rank}P_B=K$$
+$$P_B=B(B^\top B)^{-1}B^\top,\qquad P_B^2=P_B,\quad P_B^\top=P_B,\quad \mathrm{rank}P_B=K$$
 
 **Критерий.** Минимум по всем временным рядам берётся аналитически:
 

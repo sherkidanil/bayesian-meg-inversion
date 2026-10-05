@@ -76,7 +76,7 @@ The decisive observation was that the posterior mean barely improves with more s
 **What worked.** Scoring candidates by unexplained sensor energy (see `docs/math.md` §5.5). Within-sample Spearman correlation between residual and true error is ≈ 0.51, which is enough for selection over 100 candidates to recover most of the oracle gap.
 
 Matching the RAP MUSIC 2–25 Hz Butterworth preprocessing is subspace-safe:
-$YF=B(AF)+\eta F$, so filtering time does not change $\operatorname{col}(B)$.
+$YF=B(AF)+\eta F$, so filtering time does not change $\mathrm{col}(B)$.
 Refreezing the temperature after filtering improved the Anna-G working-point
 accuracy from 2.273/4.383 to 2.067/3.655 mm Euc/Geo on `dG=0` original inputs.
 Spearman itself increased by only 0.001–0.002, so the filter did not reveal a
@@ -89,7 +89,7 @@ dev-selected temperature.
 
 ## 3. Two labs, two forward models
 
-**Detection.** Comparing lead-field matrices elementwise is the wrong test: localisation depends on $G$ only through $\operatorname{col}(G\Phi(c)^{\top})$, which is invariant under $B \mapsto BD$ for invertible $D$. The right measure is principal angles between those subspaces, evaluated on real centroid triplets.
+**Detection.** Comparing lead-field matrices elementwise is the wrong test: localisation depends on $G$ only through $\mathrm{col}(G\Phi(c)^{\top})$, which is invariant under $B \mapsto BD$ for invertible $D$. The right measure is principal angles between those subspaces, evaluated on real centroid triplets.
 
 | Comparison | Value |
 |---|---:|
