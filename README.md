@@ -47,7 +47,7 @@ Since $Y = BA$ for unknown $A$, every time sample must lie in the $K$-dimensiona
 
 The final residual path uses the same zero-phase fourth-order 2–25 Hz
 Butterworth filter as RAP MUSIC. If the temporal filter is $F$, then
-$Y_f=YF=B(AF)+\eta F$, so filtering leaves $\operatorname{col}(B)$ unchanged.
+$Y_f=YF=B(AF)+\eta F$, so filtering leaves $\mathrm{col}(B)$ unchanged.
 The CFM sampler still receives unfiltered sensor data.
 
 Quadratic Gibbs weights, $w_s \propto \exp(-r_s^2 / 2\tau^2)$, are converted
@@ -131,7 +131,7 @@ An audit that changed the project's conclusions, written up in [`docs/findings.m
 
 - **The historical evaluation protocol was an oracle.** It drew several posterior samples and kept the one closest to ground truth. Every headline number produced before this audit is an upper bound, not a localiser score.
 - **The defect was in the decoder, not the weights.** The trained model was fine; the way answers were extracted from it was not.
-- **Two labs were unknowingly using different forward models.** Rebuilding the lead field from the same MNE source data produced a matrix differing by 36.8% in relative norm — 5.4× larger than the perturbation whose effect was being measured. Detected via principal angles between the subspaces $\operatorname{col}(G\Phi(c)^{\top})$ that localisation actually depends on.
+- **Two labs were unknowingly using different forward models.** Rebuilding the lead field from the same MNE source data produced a matrix differing by 36.8% in relative norm — 5.4× larger than the perturbation whose effect was being measured. Detected via principal angles between the subspaces $\mathrm{col}(G\Phi(c)^{\top})$ that localisation actually depends on.
 - **Training datasets did not persist `G`.** The exact historical lead field is unrecoverable. Every generated dataset now stores it.
 
 ## Layout
