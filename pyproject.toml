@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "meg-cfm"
 version = "0.1.0"
-description = "Amortised Bayesian inversion of the MEG forward problem with conditional flow matching"
+description = "Amortised candidate generation for MEG inversion with conditional flow matching"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }

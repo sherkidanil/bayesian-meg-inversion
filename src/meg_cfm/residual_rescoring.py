@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import numpy as np
+from scipy.signal import butter, sosfilt, sosfiltfilt
 from scipy.sparse.csgraph import dijkstra
 
 
@@ -12,6 +13,63 @@ def _finite_matrix(value: np.ndarray, name: str) -> np.ndarray:
     if not np.all(np.isfinite(matrix)):
         raise ValueError(f"{name} contains non-finite values")
     return matrix
+
+
+def _estimate_iir_ringing_samples(sos: np.ndarray, max_try: int = 100_000) -> int:
+    """Reproduce the ringing-length estimate used by MNE's IIR filter path."""
+    sections = np.asarray(sos, dtype=np.float64)
+    state = np.zeros((len(sections), 2), dtype=np.float64)
+    chunk_size = 1000
+    impulse = np.zeros(chunk_size, dtype=np.float64)
+    impulse[0] = 1.0
+    last_good = chunk_size
+    threshold = 0.0
+    for chunk_index in range(int(np.ceil(max_try / chunk_size))):
+        response, state = sosfilt(sections, impulse, zi=state)
+        impulse[0] = 0.0
+        magnitude = np.abs(response)
+        threshold = max(0.001 * float(np.max(magnitude)), threshold)
+        indices = np.flatnonzero(magnitude > threshold)
+        if indices.size:
+            last_good = int(indices[-1])
+        else:
+            return int((chunk_index - 1) * chunk_size + last_good)
+    return int(max_try)
+
+
+def butterworth_bandpass_sensor_data(
+    y: np.ndarray,
+    *,
+    sfreq_hz: float,
+    low_hz: float = 2.0,
+    high_hz: float = 25.0,
+    order: int = 4,
+) -> np.ndarray:
+    """Apply the zero-phase Butterworth SOS filter used in the RAP MUSIC code."""
+    data = _finite_matrix(y, "y")
+    sampling_frequency = float(sfreq_hz)
+    low = float(low_hz)
+    high = float(high_hz)
+    filter_order = int(order)
+    if not np.isfinite(sampling_frequency) or sampling_frequency <= 0.0:
+        raise ValueError("sfreq_hz must be finite and positive")
+    if not 0.0 < low < high:
+        raise ValueError("bandpass cutoffs must satisfy 0 < low_hz < high_hz")
+    if high >= sampling_frequency / 2.0:
+        raise ValueError("high_hz must be below the Nyquist frequency")
+    if filter_order <= 0 or filter_order != order:
+        raise ValueError("order must be a positive integer")
+    if data.shape[-1] < 2:
+        raise ValueError("y must contain at least two time samples")
+    sos = butter(
+        filter_order,
+        [low, high],
+        btype="bandpass",
+        fs=sampling_frequency,
+        output="sos",
+    )
+    padlen = min(_estimate_iir_ringing_samples(sos), data.shape[-1] - 1)
+    return np.asarray(sosfiltfilt(sos, data, axis=-1, padlen=padlen), dtype=np.float64)
 
 
 def orthonormal_column_basis(
@@ -41,8 +99,9 @@ def subspace_residual(basis: np.ndarray, y: np.ndarray) -> float:
     q = orthonormal_column_basis(matrix)
     if q.shape[1] == 0:
         return 1.0
-    explained = float(np.sum(np.square(q.T @ data, dtype=np.float64)))
-    return float(np.sqrt(np.clip(1.0 - explained / energy, 0.0, 1.0)))
+    residual = data - q @ (q.T @ data)
+    residual_energy = float(np.sum(np.square(residual, dtype=np.float64)))
+    return float(np.sqrt(np.clip(residual_energy / energy, 0.0, 1.0)))
 
 
 def subspace_residual_from_covariance(
@@ -154,7 +213,7 @@ def residual_rescore_draws(
     graph,
     params_spatial,
 ) -> tuple[np.ndarray, int]:
-    from metrics import project_coords_to_vertices
+    from meg_cfm.metrics import project_coords_to_vertices
 
     draws = np.asarray(theta_draws, dtype=np.float64)
     if draws.ndim != 3 or draws.shape[2] != 3 or draws.shape[0] == 0:

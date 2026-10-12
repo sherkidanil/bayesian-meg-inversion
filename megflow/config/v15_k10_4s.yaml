@@ -1,0 +1,88 @@
+milestone: V15
+dataset:
+  seed: 20260916
+  counts:
+    train: 100000
+    val: 970
+    dev: 350
+    heldout: 350
+  shard_size: 100
+  pool: 10
+  simulator: supplied_20260915
+  geometry_mode: cropped_oct6_float64
+  anatomy_sha256: d2e9c56a91a7ab3cf197d9878825508ef8f2878b22ea5f2447bfd310a5cbba79
+  simulation:
+    k_min: 1
+    k_max: 10
+    n_samples: 4000
+    sfreq: 1000
+    duration_samples: 500
+    overlap_frac: 0.4
+    min_separation_mm: 50.0
+    radius_min: 8.0
+    radius_max: 25.0
+    radius_mu: 14.515
+    radius_sigma: 3.8
+    sigma_mm_scale: 0.3333333333333333
+    freq_bands_hz:
+    - - 4.0
+      - 8.0
+    - - 8.0
+      - 12.0
+    - - 12.0
+      - 16.0
+    - - 16.0
+      - 20.0
+    noise_level: 0.3
+    beta_rad: 0.13
+    beta_tan: 0.001
+    max_attempts: 20
+    temporal:
+      pad: 300
+      shape: 6.0
+      scale: 4.0
+      qL: 1.0e-05
+      qR: 0.999
+    noise:
+      window: 0.1
+      N_noise_sources: 100
+      pad: 300
+    filter:
+      l_freq: 2.0
+      h_freq: 40.0
+      order: 4
+      ftype: butter
+encoder:
+  n_sensors: 102
+  widths:
+  - 64
+  - 128
+  - 128
+  kernel_size: 15
+  n_queries: 4
+  cond_dim: 192
+model:
+  target: xyz_radius
+  radius_transform: log
+  d_model: 256
+  n_layers: 6
+  n_heads: 8
+  mlp_width: 512
+  mlp_depth: 3
+training:
+  seed: 303
+  batch_size: 256
+  steps: 20000
+  lr: 0.0003
+  warmup: 500
+  weight_decay: 0.01
+  clip_norm: 1.0
+  ema_decay: 0.999
+  bf16: true
+  eval_every: 500
+  log_every: 100
+  max_seconds: 6900
+  normalize: shared_source_train_only
+  coupling: none
+  permute_sources: true
+  count_loss_weight: 0.1

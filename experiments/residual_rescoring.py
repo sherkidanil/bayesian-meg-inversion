@@ -99,8 +99,9 @@ def subspace_residual(basis: np.ndarray, y: np.ndarray) -> float:
     q = orthonormal_column_basis(matrix)
     if q.shape[1] == 0:
         return 1.0
-    explained = float(np.sum(np.square(q.T @ data, dtype=np.float64)))
-    return float(np.sqrt(np.clip(1.0 - explained / energy, 0.0, 1.0)))
+    residual = data - q @ (q.T @ data)
+    residual_energy = float(np.sum(np.square(residual, dtype=np.float64)))
+    return float(np.sqrt(np.clip(residual_energy / energy, 0.0, 1.0)))
 
 
 def subspace_residual_from_covariance(

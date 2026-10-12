@@ -47,3 +47,14 @@ paper/*.pdf
 .AppleDouble
 .Spotlight-V100
 .Trashes
+
+# Local experiment output and working notes
+/docs/plans/
+/megflow/docs/plans/
+/megflow/results/
+/megflow/cache/
+/megflow/runs/
+
+# Manuscript repositories are versioned separately
+/overleaf-source/
+/overleaf-variable-k/

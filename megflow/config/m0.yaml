@@ -1,0 +1,11 @@
+milestone: M0
+k_values: [1, 2, 3, 5, 8, 12, 20]
+seeds: [20260914, 20260915, 20260916]
+n_per_k: 200
+smoke: false
+acceptance:
+  min_placement_success: 0.99
+  min_full_rank_fraction: 0.99
+  min_median_rho: 0.95
+  max_p90_drift_mm: 5.0
+  max_noiseless_gain: 1.0e-8

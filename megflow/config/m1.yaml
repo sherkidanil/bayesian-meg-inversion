@@ -1,0 +1,43 @@
+# Independent M1 configuration; do not merge with the frozen M0 base.
+milestone: M1
+dataset:
+  seed: 20260914
+  counts: {train: 8730, val: 970, dev: 350, heldout: 350}
+  shard_size: 500
+  pool: 12
+  simulator: prototype_fixed_k3_v1
+  min_separation_mm: 30.0
+  noise_level: 0.3
+  radii_mm: [10.0, 8.0, 10.0]
+  n_samples: 1800
+  sfreq: 1000
+  geometry_mode: legacy_fragmented
+  anatomy_sha256: 1fcaa1679c3e87ce71812ecdcfb7bebe33772a932ad66c5a6119d760833a1452
+encoder:
+  n_sensors: 102
+  widths: [64, 128, 128]
+  kernel_size: 15
+  n_queries: 4
+  cond_dim: 192
+model:
+  d_model: 256
+  n_layers: 6
+  n_heads: 8
+  mlp_width: 512
+  mlp_depth: 3
+training:
+  seed: 303
+  batch_size: 256
+  steps: 20000
+  lr: 0.0003
+  warmup: 500
+  weight_decay: 0.01
+  clip_norm: 1.0
+  ema_decay: 0.999
+  bf16: true
+  eval_every: 500
+  log_every: 100
+  max_seconds: 6900
+  normalize: shared_xyz_train_only
+  coupling: none
+  permute_sources: false

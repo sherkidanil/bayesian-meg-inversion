@@ -1,6 +1,9 @@
-# Bayesian MEG Inversion with Conditional Flow Matching
+# MEG Inversion with Conditional Flow Matching
 
-Amortised posterior inference for the MEG inverse problem: a conditional flow-matching model learns to sample source configurations $\pi(\theta \mid Y)$ from sensor data, and a physics-based decoder turns those samples into a single localisation.
+Amortised candidate generation for the MEG inverse problem: a conditional
+flow-matching model generates source configurations from sensor data, and a
+physics-based decoder turns the candidate pool into a single localisation. The
+generated pool is not assumed to be a calibrated posterior distribution.
 
 Companion code to ongoing work at Skoltech / HSE / AIRI, following [Bayesian Inverse Problems Meet Flow Matching](https://arxiv.org/abs/2503.01375) (arXiv:2503.01375).
 
@@ -35,7 +38,9 @@ Full derivations are in [`docs/math.md`](docs/math.md).
 
 ## The approach
 
-**Sampling.** A conditional flow-matching model is trained on simulations to sample from the posterior. Inference integrates an ODE from noise, so each random seed yields a different plausible source configuration.
+**Sampling.** A conditional flow-matching model is trained on simulations to
+generate conditional source configurations. Inference integrates an ODE from
+noise, so each random seed yields a different candidate configuration.
 
 **Decoding.** A distribution of 400 samples must collapse to one answer. The
 decoder scores each candidate $c$ by how much sensor energy its patches fail to
@@ -125,6 +130,20 @@ recalculation script, and interpretation in
 [`reports/transformer-common-valid/`](reports/transformer-common-valid/README.md).
 It is a separate protocol from the CFM-versus-RAP comparison above.
 
+### Variable-cardinality extension
+
+The [`megflow/`](megflow/README.md) package contains the current PyTorch
+implementation for an unknown number of cortical sources. It supports
+`K=1,...,10`, predicts coordinates and radii, and includes two ways to infer
+cardinality: a count head and null slots. The true `K` is not supplied at
+inference. The package contains dataset generation, training, candidate-bank
+and single-draw evaluation, geodesic metrics, configurations, and tests.
+
+Fixed-`K=3` MLP and Transformer comparisons use a separate protocol, described
+in [`reports/transformer-common-valid/`](reports/transformer-common-valid/README.md).
+Datasets and model checkpoints are intentionally excluded from Git; see the
+package README for commands and required inputs.
+
 ## What this repository also documents
 
 An audit that changed the project's conclusions, written up in [`docs/findings.md`](docs/findings.md):
@@ -143,6 +162,7 @@ tests/             unit tests, including leakage guards on truth-free estimators
 docs/              mathematical appendix and findings write-up
 reports/           executive summary, method, results, and provenance logs
 paper/             manuscript source (Typst, draft)
+megflow/           variable-cardinality PyTorch implementation and tests
 ```
 
 ## Install and test

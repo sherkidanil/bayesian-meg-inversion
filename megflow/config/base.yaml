@@ -1,0 +1,25 @@
+seed: 20260914
+simulator:
+  min_separation_mm: 30.0
+  max_placement_attempts: 100
+  radius_mm: 10.0
+  sigma_ratio: 0.3333333333333333
+  snr: 3.333
+  noise_mode: white
+  time_courses:
+    mode: random
+    n_samples: 1800
+    sfreq: 1000.0
+    band_hz: [2.0, 40.0]
+    bandwidth_hz: [2.0, 6.0]
+    window_dur_s: [0.3, 1.2]
+    correlation:
+      mode: pairwise
+      rho_range: [0.0, 0.95]
+      p_correlated_pair: 0.3
+score:
+  alpha: 2.0
+  r_max: 40
+decoder:
+  n_passes: 4
+  improvement_tol: 1.0e-10

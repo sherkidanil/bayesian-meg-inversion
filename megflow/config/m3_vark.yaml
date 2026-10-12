@@ -1,0 +1,8 @@
+# Configured limit for M3 and subsequent variable-source milestones.
+# M3 execution remains gated on implementation and acceptance of M1 and M2.
+milestone: M3
+simulator:
+  n_sources:
+    mode: uniform
+    k_min: 1
+    k_max: 10
