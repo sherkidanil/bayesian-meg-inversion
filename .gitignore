@@ -39,9 +39,6 @@ venv/
 .worktrees/
 cache_memmap/
 
-# Typst build output
-paper/*.pdf
-
 # macOS AppleDouble artefacts
 ._*
 .AppleDouble
@@ -49,8 +46,11 @@ paper/*.pdf
 .Trashes
 
 # Local experiment output and working notes
-/docs/plans/
-/megflow/docs/plans/
+/docs/
+/paper/
+/reports/
+/tests/
+/megflow/tests/
 /megflow/results/
 /megflow/cache/
 /megflow/runs/

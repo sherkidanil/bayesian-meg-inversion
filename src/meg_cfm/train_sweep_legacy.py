@@ -3,7 +3,7 @@
 The validation metric written to ``trial.set_user_attr("eval_mae_geo_mm", ...)``
 below selects, among several posterior draws, the one closest to GROUND TRUTH.
 That is an oracle upper bound, not a localiser score. Every historical number
-derived from this attribute is contaminated; see docs/findings.md section 1.
+derived from this attribute is contaminated.
 
 The search objective itself (validation loss) is honest, so trial rankings by
 objective value remain usable. Kept unmodified so the contamination stays

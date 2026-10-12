@@ -28,14 +28,11 @@ Repository = "https://github.com/sherkidanil/bayesian-meg-inversion"
 Paper = "https://arxiv.org/abs/2503.01375"
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "ruff>=0.5"]
+dev = ["ruff>=0.5"]
 viz = ["matplotlib>=3.8", "nibabel>=5.2", "pyvista>=0.43"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 100

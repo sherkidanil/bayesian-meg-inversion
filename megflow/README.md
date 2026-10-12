@@ -18,19 +18,17 @@ evaluation, and the frozen source simulator are included alongside the models.
   fixed-`K` comparisons, null-slot training, and evaluation.
 - `config/`: experiment configurations, including the `K_max=10` variants.
 - `references/`: the supplied 15 September dataset generator and its provenance.
-- `tests/`: CPU unit tests for simulation, models, training, and evaluation.
 
-## Install and test
+## Install
 
 Python 3.10 or newer is required. From the repository root:
 
 ```sh
-python -m pip install -e './megflow[v15,test]'
-python -m pytest megflow/tests -q
+python -m pip install -e './megflow[v15]'
 ```
 
-Training normally uses a CUDA GPU; the test suite runs on CPU. The package
-does not include anatomical bundles, generated recordings, or checkpoints.
+Training normally uses a CUDA GPU. The package does not include anatomical
+bundles, generated recordings, or checkpoints.
 Paths to those inputs are provided explicitly to the commands below.
 
 ## Data, training, and evaluation
