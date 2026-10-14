@@ -690,3 +690,7 @@ def main(argv=None):
         metadata=metadata,
     )
     print(json.dumps(_json_finite(summaries), sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()

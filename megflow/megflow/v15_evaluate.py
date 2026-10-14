@@ -161,6 +161,7 @@ def recompute_geodesic_summary(
 def matched_source_errors(
     *, true_centers, predicted_centers, true_radii, predicted_radii, geometry
 ):
+    """Match centers by Euclidean distance for center-error diagnostics."""
     true_centers = np.asarray(true_centers, dtype=np.int64)
     predicted_centers = np.asarray(predicted_centers, dtype=np.int64)
     true_radii = np.asarray(true_radii, dtype=float)
@@ -283,7 +284,10 @@ def evaluate_record(
         geometry=geometry,
         disconnected_penalty_mm=ospa_cutoff_mm,
     )
-    radius_error = matched["radius_error_mm"]
+    radius_error = (
+        predicted_radii[candidate_geodesic["predicted_index"]]
+        - true_radii[candidate_geodesic["true_index"]]
+    )
     euclidean = matched["euclidean_mm"]
     euclidean_geodesic = matched["geodesic_mm"]
     return dict(
@@ -303,6 +307,9 @@ def evaluate_record(
         ),
         radius_mae_mm=float(np.mean(np.abs(radius_error))) if len(radius_error) else None,
         radius_bias_mm=float(np.mean(radius_error)) if len(radius_error) else None,
+        radius_match_true_index=candidate_geodesic["true_index"].tolist(),
+        radius_match_predicted_index=candidate_geodesic["predicted_index"].tolist(),
+        radius_error_mm=radius_error.tolist(),
         disconnected_count=matched["disconnected_count"],
         geodesic_connected_sum_mm=candidate_geodesic["connected_sum_mm"],
         geodesic_connected_count=candidate_geodesic["connected_count"],
@@ -795,7 +802,7 @@ def main(argv=None):
             config["dataset"]["simulation"]["radius_max"],
         ],
         projection="nearest_surface_vertex_euclidean",
-        matching="hungarian_euclidean_centers_only",
+        matching="hungarian_geodesic_radii_euclidean_centers",
         draw_count=draw_count,
     )
     if protocol is not None:
@@ -816,3 +823,7 @@ def main(argv=None):
     )
     write_evaluation_artifacts(args.output, evaluation, metadata)
     print(json.dumps(_json_finite(evaluation["summary"]), sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()
